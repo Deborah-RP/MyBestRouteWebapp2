@@ -1,0 +1,264 @@
+"use strict";
+var dndObj = dndObj || {};
+
+function get_radio_value(radioName) {
+    var radios = document.getElementsByName(radioName);
+    for (var i = 0; i < radios.length; i++ ) {
+        if( radios[i].checked ) {
+            return radios[i].value;
+        }
+    }
+}
+
+/*function to_json(workbook) {
+    var result = {};
+    workbook.SheetNames.forEach(function(sheetName) {
+        var roa = XLSX.utils.sheet_to_row_object_array(workbook.Sheets[sheetName]);
+        if(roa.length > 0){
+            result[sheetName] = roa;
+        }
+    });
+    return result;
+}*/
+
+function to_csv(workbook) {
+    var result = [];
+    workbook.SheetNames.forEach(function(sheetName) {
+        var csv = XLSX.utils.sheet_to_csv(workbook.Sheets[sheetName]);
+        if(csv.length > 0) {
+            result.push("SHEET: " + sheetName);
+            result.push("");
+            result.push(csv);
+        }
+    });
+    return result.join("\n");
+}
+
+function to_formulae(workbook) {
+    var result = [];
+    workbook.SheetNames.forEach(function(sheetName) {
+        var formulae = XLSX.utils.get_formulae(workbook.Sheets[sheetName]);
+        if(formulae.length > 0){
+            result.push("SHEET: " + sheetName);
+            result.push("");
+            result.push(formulae.join("\n"));
+        }
+    });
+    return result.join("\n");
+}
+
+function b64it() {
+    var wb = XLSX.read(tarea.value, {type: 'base64'});
+    process_wb(wb);
+}
+
+/*
+* This function will take in json worksheet output, filter
+* to produce the desired json output
+* Filter format:
+* name: col number in the worksheet
+* if the col number is -1, the col is not selected.
+*/
+function filter_worksheet(jSheet, filter){
+    //console.log("The jSheet is " + jSheet);
+    console.log("The filter is " + JSON.stringify(filter));
+    var newJson = [];
+    for (var i = 0; i < jSheet.length; i++){
+        var row = {};
+        for (var key in filter){
+            //console.log("col_no is " + col_no);
+            var col_name = filter[key];
+            var val = jSheet[i][col_name];
+            row[key] = val;
+        }
+        newJson.push(row);
+    }
+    console.log("The new json object is " + JSON.stringify(newJson));
+    return newJson;
+}
+
+
+function to_json(worksheet) {
+    var result = XLSX.utils.sheet_to_row_object_array(worksheet);
+    console.log("The result lenght is " + result.length);
+    return result;
+}
+
+//Retrive the header (first column) from worksheet
+function get_header(worksheet) {
+    //console.log("Getting header....");
+    var range =  XLSX.utils.decode_range(worksheet['!ref']);
+    //console.log("first col " + range.s.c);
+    //console.log("last col " + range.e.c);
+    var headers = {};
+    for(var C = range.s.c; C <= range.e.c; ++C) {
+        var addr = XLSX.utils.encode_cell({r:range.s.r, c:C});
+        var cell = worksheet[addr];
+        console.log("Cell is " + cell.v);
+        if(!cell) continue;
+        //headers.push(XLSX.utils.format_cell(cell.v));
+        //headers.push(cell.v);
+        headers[C] = cell.v;
+    }//End of for
+    return headers;
+}
+
+//Convert big data into string
+function fixData(data, bar, strTxt) {
+	var o = "", l = 0, w = 10240, size = data.byteLength/w;
+    var progress = 0;
+	for(; l<size; ++l) {
+        if (l % 30 === 0) {
+            progress = l/size * 100;
+            //updateProgressBar(bar, progress, strTxt);
+        }
+        o+=String.fromCharCode.apply(null,new Uint8Array(data.slice(l*w,l*w+w)));
+        
+    }
+	o+=String.fromCharCode.apply(null, new Uint8Array(data.slice(l*w)));
+    //updateProgressBar(bar, 100, strTxt);
+	return o;
+}
+
+function process_wb(wb) {
+    var output = JSON.stringify(to_json(wb), 2, 2);;
+    /*switch(get_radio_value("format")) {
+        case "json":
+        output = JSON.stringify(to_json(wb), 2, 2);
+            break;
+        case "form":
+            output = to_formulae(wb);
+            break; 
+        default:
+        output = to_csv(wb);
+    }
+    if(out.innerText === undefined) out.textContent = output;
+    else out.innerText = output;*/
+    console.log("The file content is: " + output);
+}
+
+
+
+//HTML5 drag-and-drop using readAsArrayBuffer
+
+function handleDrop(e) {
+    console.log("Handling Drop Event!");
+    var bar = $("#readData");
+    //bar.css("-webkit-transition","none");
+    var files = e.originalEvent.dataTransfer.files;
+    var f = files[0];
+    var fName = f.name;
+    bar.css("transition", "none");
+    bar.text("Reading data from " +fName + "......");
+    //animateProgressBar(bar, "Reading data from " +fName + "......");
+    
+    e.stopPropagation();
+    e.preventDefault();
+    //console.log("The file content is: "+f);
+    var reader = new FileReader();
+
+    reader.onload = function(e) {
+        
+        var data = e.target.result;
+        //console.log("The file content is: "+data);
+        //var wb = XLSX.read(data, {type: 'binary'});
+        //var arr = String.fromCharCode.apply(null, new Uint8Array(data));
+        //var wb = XLSX.read(btoa(arr), {type: 'base64'});
+        //process_wb(wb);
+        test_workbook(data);
+        updateProgressBar(bar, 100, "Read data completed! ");
+    };
+    
+    //reader.readAsBinaryString(f);
+    reader.readAsArrayBuffer(f);
+}
+//The testing function for workbook
+function test_workbook(data){
+	//console.log("data is " + data);
+	///Read as 'binary' string, || FAIL
+	//var workbook = XLSX.read(data, {type: 'binary'});
+	
+	//Convert data to binary string || stack size exceeded for big file.
+	//var arr = String.fromCharCode.apply(null, new Uint8Array(data));
+	//var workbook = XLSX.read(btoa(arr), {type: 'base64'});
+    
+	//Covert data using Unit16Array instead || FAIL
+	//var arr = String.fromCharCode.apply(null, new Uint16Array(data));
+	
+	//Convert data to binary string using text-encoding lib | FAIL
+	//var rawStr = new TextDecoder().decode(data);
+	//var workbook = XLSX.read(utf8_to_b64(rawStr), {type: 'base64'});
+    
+    //Convert data to binary string using ab2str function || FAIL
+    //var rawStr = ab2str(data);
+    //var workbook = XLSX.read(rawStr, {type: 'binary'});
+    
+    //Convert data to binrary string using fixdata || SUCCESS
+    
+    var rawStr = fixData(data);
+    
+    //console.log("fixData completed!");
+    var workbook = XLSX.read(btoa(rawStr), {type: 'base64'});
+    if (workbook.SheetNames.length > 1){
+        $('#fileDnD').append("<h3><p class='text-danger'>Multiple worksheets detected, please note only the first worksheet is accepted!</p></h3>");
+    }
+    
+    //Get the first worksheet content
+    var firstSheetName = workbook.SheetNames[0];
+    var firstSheet = workbook.Sheets[firstSheetName];
+    
+    //Geht the header information from the firstworksheet
+    var headers = get_header(firstSheet);
+    addSelectOptions(headers, ["date_format"]);
+    //var output = JSON.stringify(to_json(firstSheet), 2, 2);
+    var output = to_json(firstSheet);
+    //console.log("output is " + output);
+    $('#confirmopt').click({output:output}, clickConfirm);
+	//console.log ("The JSON content is : " + output);
+    /*for (var colIdx in headers){
+        console.log(colIdx + " col is " + headers[colIdx]);
+    }*/
+}
+
+function clickConfirm(e){
+    var filter = getSelectText();
+    filter_worksheet(e.data.output, filter);
+}
+
+function handleDragover(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    console.log("Handling Dropover Event!");
+    dndObj.css('border', '8px dotted #0B85A1');
+    //e.originalEvent.dataTransfer.dropEffect = 'copy';
+}
+
+function handleDragenter(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    console.log("Handling Dropenter Event!");
+}
+
+function initDnD (e) {
+	dndObj = $("#fileDnD");
+	//console.log("The dndObj text is " + dndObj.text());
+    if (document.addEventListener){
+        console.log("Adding Event Listener!");
+        dndObj.on('dragenter', handleDragenter);
+        dndObj.on('dragover', handleDragover);
+        dndObj.on('drop', handleDrop);
+        
+        //dndObj.addEventListener('dragenter', handleDragenter, false);
+        //dndObj.addEventListener('dragover', handleDragover, false);
+        //dndObj.addEventListener('drop', handleDrop, false);
+    }
+}
+
+//Prevent "Drop" event outside of the drop area
+if (document.addEventListener){
+    document.addEventListener('dragenter', handleDragenter, false);
+    document.addEventListener('dragover', handleDragenter, false);
+    document.addEventListener('drop', handleDragenter, false);
+    window.addEventListener("load", initDnD, false);
+}
+

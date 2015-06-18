@@ -1,0 +1,112 @@
+{% extends 'base_no_side_map_dataTables.html' %} 
+
+
+{% block page_block %}
+
+	<div class="container-fluid">
+		<!--<div class="well bg-info">
+			<p>This function allows user to upload their existing route solution for analysis and comparison.</p>
+			<P>Select the excel file and match the columns with required fields. The data will then be automatically processed.<p>-->
+			
+		{% include 'dndexcel.html' %}
+		{% include 'option_panel.html' %}
+		{% include 'route_data_panel.html' %}
+		{% include 'map_data_filter_panel.html' %}
+	   
+		<div class="row">
+			<div class="col-md-12">                
+				<div id="mapRoute" style="display: none;">
+					<div id="osmmap" class="olMap"></div>
+				</div>              
+			</div>
+			<div class="col-md-12">    
+				<table  class="table table-condensed">
+					<tbody id="colorLegend">
+					</tbody>
+				</table>
+			</div>
+			 <!--class="col-lg-12" -->
+		</div>
+		<!-- /.row -->            
+	</div>
+	<!--/.container-fluid-->
+
+{% endblock %} 
+
+
+{% block javascript_block %}
+    {% include 'xlsx_js.html' %} 
+    {% include 'map_js.html' %} 
+	
+    <script>
+        var pageVar = {};
+		
+        pageVar.dnd_id = "#fileDnD";
+        pageVar.selected_id = "#fileSelected";
+		pageVar.selected_date_id = "#dateSelected";
+        pageVar.map_btn_id = "#mapBtn";
+		
+		function init_page(){
+			//Prevent "Drop" event outside of the drop area
+			var doc = $(document);
+			
+			pageVar.dnd_obj = $(pageVar.dnd_id);
+			pageVar.file_selected = $(pageVar.selected_id);	
+			pageVar.map_btn = $(pageVar.map_btn_id);			
+
+			doc.on('dragenter', handleDragenter);
+			doc.on('dragover', handleDragenter);
+			doc.on('drop', handleDragenter);
+			
+			//Register buttons with the show event
+			$("#tryBtn").on('click', {show_id : "#dndPanel"}, handleShowItem);
+			$("#setOptBtn").on('click', {show_id : "#optionPanel"}, handleShowItem);
+			
+			
+			//Register the DnD object with events
+			pageVar.dnd_obj.on('dragenter', handleDragenter);
+			
+			var obj_css_array = [{
+					obj_id: pageVar.dnd_id,
+					css_array : [{
+						name: 'border',
+						value: '8px dotted #0B85A1'
+						}
+					]
+				}
+			];			
+			pageVar.dnd_obj.on('dragover', {obj_css_array : obj_css_array}, handleDragover);
+
+			var drop_select_param = {
+				m_sheet_warning_id : "#multiSheetWarning",
+				read_bar_id : "#readData",
+				confirm_opt_id : "#confirmOpt",
+				ignore_headers : ["date_format", "country"], 
+                sel_by_val: {country:"#country"},
+				dt_table_bar_id : "#dtTableBar", 
+				route_data_id : "#routeDataPanel", 
+				data_table_id : "#routeTable",
+				map_filter_panel_id : "#mapDataFilterPanel",
+				selected_date_id : pageVar.selected_date_id, 
+			};
+			pageVar.dnd_obj.on('drop', drop_select_param, handleDropSelect);	
+			pageVar.file_selected.on('change', drop_select_param, handleDropSelect);
+			
+			var map_param = {
+				selected_date_id : pageVar.selected_date_id,
+				selected_start_tm_id : "#startTmSelected",
+				selected_end_tm_id : "#endTmSelected",
+				map_panel_id : "#mapRoute",
+				map_div_id : "osmmap",
+				map_zoom_level: 12,
+				multi_route_warning_id : "#multiRoute",
+				color_legend_id : "#colorLegend",
+			};
+			
+			pageVar.map_btn.on("click", map_param, handleMap);
+		}
+		
+		window.onload = init_page;
+    </script>
+
+{% endblock %}

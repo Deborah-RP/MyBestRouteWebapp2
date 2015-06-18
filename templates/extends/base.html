@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<head>
+    {% include "base_head.html" %}
+	{% block css_block %} 
+    {% endblock %}
+</head>
+<body>
+    <div id="wrapper">
+        <!-- Navigation -->
+        <nav class="navbar navbar-default navbar-static-top" role="navigation" style="margin-bottom: 0">
+            {% include 'navbar_top.html'%} 
+            {% include 'navbar_side.html'%}
+        </nav>
+
+        <div id="page-wrapper">
+            {% block page_block %} 
+            {% endblock %}
+        </div>
+        <!-- /#page-wrapper -->
+    </div>
+    <!-- /#wrapper -->
+    {% include 'format_js.html' %} 
+    {% block include_js_block %} 
+    {% endblock %} 
+    {% block javascript_block %} 
+    {% endblock %}
+
+</body>
+
+</html>

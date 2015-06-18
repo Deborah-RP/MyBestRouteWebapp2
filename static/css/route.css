@@ -1,0 +1,76 @@
+.olMap{
+    cursor: default;
+    height: 800px;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100%;
+    z-index: 0;
+}
+
+.fileDrapNDrop{
+    border:0px dotted #0B85A1;
+    width:100%;
+    color:#92AAB0;
+    text-align:center;vertical-align:middle;
+    padding:10px 10px 10 10px;
+    margin-bottom:10px;
+    font-size:200%;
+    height:120px
+}
+
+.fileDrapNDrop.hover
+{
+	color: #f00;
+	border-color: #f00;
+	border-style: solid;
+	box-shadow: inset 0 3px 4px #888;
+}
+
+.verticalDivider{
+    padding-left:20px; 
+    border-left: 1px solid #e0e0e0
+}
+
+.excelArea[readonly="readonly"]
+{
+	pointer-events: none;
+	white-space: nowrap;
+	height: 10em; 
+	width: 80em;
+    font-size: 32px;
+    font-family: "Times New Roman", Times, serif;  
+}
+
+.carousel-inner1 > .item > img,
+.carousel-inner1 > .item > a > img {
+    width: 80%;
+    margin: auto;
+    background-color: #777;
+}
+
+.carousel {
+  height: 700px;
+  margin-bottom: 60px;
+}
+
+.carousel-caption {
+  z-index: 10;
+  background: rgba(0,0,0,0.5);
+}
+
+.carousel .item {
+  height: 700px;
+  background-color: #777;
+}
+
+.carousel-inner > .item > img {
+  top: 0;
+  left: 0;
+  min-width: 70%;
+  max-width: 80%;
+  min-height: 80%;
+  max-height: 88%;
+  
+  margin: auto;
+}
+

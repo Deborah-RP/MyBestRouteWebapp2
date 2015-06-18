@@ -1,0 +1,74 @@
+<!-- Setup the data -->
+{% set slides = [{
+        "caption": "",
+        "desc": ""
+        },
+        {"caption": "Welcome",
+        "desc": "With a few steps, you can immediately map your delivery route!"
+        },
+        {"caption": "No template required!",
+        "desc": "Just drag and drop your excel file."
+        },
+        {"caption": "Match the options and go!",
+        "desc": "Just 2 basic options to get started."
+        },
+        {"caption": "Check the data",
+        "desc": ""
+        },
+        {"caption": "Filter data based on date and time",
+        "desc": ""
+        },
+        {"caption": "And here you are",
+        "desc": ""
+        },
+    ]
+%}
+
+{% set img_name = "/img/carousel/carousel_" %}
+
+<div id="myCarousel" class="carousel slide" data-ride="carousel" data-interval=5000>
+    <ol class="carousel-indicators">
+        {% for s in slides %}
+            {% if loop.index0 == 0 %}
+                <li data-target="#myCarousel" data-slide-to=" {{ loop.index0 }}" class="active"></li>
+            {% else %}
+                <li data-target="#myCarousel" data-slide-to=" {{ loop.index0 }}"></li>
+            {% endif %}
+        {% endfor %}
+    </ol>
+    
+    <!-- Wrapper for slides -->
+    <div class="carousel-inner" role="listbox">
+        {% for s in slides %}
+            {% if loop.index0 == 0 %}
+                <div class="item active">
+                    <img src="/img/carousel/empty.gif" alt="">
+                    <div class="carousel-caption">
+                        <h1 class="text-center">Online Route Planning</h1>
+                        <p class="lead text-center">Visualize the vehicle route and job assignments on the map.</p>
+                        <p class="lead text-center">Analyze the solution and provide quantitative reports. </p>
+                        <p class="lead text-center">Apply multiple-stop route optimization solution.</p>
+                    </div>
+                </div>
+            {% else %}
+                <div class="item">
+                    <img src="{{ img_name }}{{ loop.index0 }}.png" alt={{ s.caption }}>
+                    <div class="carousel-caption">
+                        <h2>{{ s.caption }}</h2>
+                        <h3><p>{{ s.desc }}</p></h3>
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}      
+    </div>
+        
+    <!-- Left and right controls -->
+    <a class="left carousel-control" href="#myCarousel" role="button" data-slide="prev">
+        <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+        <span class="sr-only">Previous</span>
+    </a>
+    <a class="right carousel-control" href="#myCarousel" role="button" data-slide="next">
+        <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+        <span class="sr-only">Next</span>
+    </a>
+</div>

@@ -1,0 +1,60 @@
+{% extends 'base_map.html' %}
+
+{% block page_block %}
+
+<div class="container-fluid">
+ <div class="row">
+ 	<div class="col-lg-12">
+ 		<div class="panel panel-default">
+ 			<div class="panel-heading"><h2>My Map</h2></div>
+ 			<!-- /.panel-heading -->
+ 			
+			<div class="panel-body">
+				<!-- Nav tabs -->
+				<ul class="nav nav-tabs">
+					<li class="active"><a href="#openstreet" data-toggle="tab">Open Street Map</a>
+					</li>
+					<li><a href="#onemap" data-toggle="tab">One Map</a>
+					</li>
+				</ul>
+				<!-- Tab panes -->
+				<div class="tab-content">
+					<div class="tab-pane fade in active" id="openstreet">
+					<h3>Open Street Map</h3>
+						<div id="osmmap" class="olMap"></div>
+					</div>
+					 <div class="tab-pane fade" id="onemap">
+					 <h3>One Map</h3>
+					 	<div id="ommap"></div>
+					 </div>
+				</div>
+			</div>
+			<!-- class="panel-body" -->
+		</div>
+		<!-- class="panel panel-default" -->
+	</div>
+	<!-- class="col-lg-12" -->
+</div>
+<!-- /.row -->
+</div>
+<!--/.container-fluid-->
+{% endblock %}
+
+{% block javascript_block %}
+<script>
+	function show_map(){
+		var mapOpts = {
+		div_id: "osmmap",
+		//center: [1.443930, 103.785256],
+		level : 13 
+		};
+		create_osmap(mapOpts);
+	}
+	
+	//Function is only run after all scripts load
+	window.onload=function(){
+		set_browser_location();
+  		show_map();
+	}
+</script>
+{% endblock %}   

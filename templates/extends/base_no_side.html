@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<head>
+    {% include "base_head.html" %}
+	{% block css_block %} 
+    {% endblock %}
+</head>
+
+<body>
+    <div id="wrapper">
+        <!-- Navigation -->
+        <nav class="navbar navbar-default navbar-static-top" role="navigation" style="margin-bottom: 0">
+            {% include 'navbar_no_side_top.html'%} 
+        </nav>
+
+        {% include 'home_carousel.html' %}
+        <div class="span7 text-center">
+            <button type="button" id = "tryBtn" class="btn btn-lg btn-success navbar-btn">Try It For Free!</a>    
+        </div>
+
+        {% block page_block %} 
+        {% endblock %}
+        
+    </div>
+    <!-- /#wrapper -->
+    
+    {% include 'format_js.html' %} 
+    
+    {% block include_js_block %} 
+    {% endblock %} 
+    
+    {% block javascript_block %} 
+    {% endblock %}
+
+</body>
+
+</html>
