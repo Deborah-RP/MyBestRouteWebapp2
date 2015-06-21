@@ -14,27 +14,23 @@ var TILE_LAYER_OPTIONS = {
 		subdomains: SUBDOMAINS,
 	};
 
-var COLOR_ARRAY = ["crimson", "lightskyblue", "orange", "violet", "yellow", "blue", "brown", "green", "lightyellow", "purple"];
+var COLOR_ARRAY = ["purple", "blue", "crimson", "lightskyblue", "orange", "violet", "yellow", "brown", "green", "palegreen"];
 var NUM_ICON_PATH = "/img/leaflet/map_icons/numbers";
 var MAX_NUM_PER_ROUTE = 100;
 //var MAP_GEOCODER = new OneMapProvider();
 var OSM_MAP;
 var TRUCK_IMG = "truck.png";
-var REQ_PER_MIN = 10; //-1 means no limit
+var REQ_PER_MIN = 10;//-1 means no limit
 var mapVar = mapVar || {};
 
 var googleAPI = new GeocoderJS.createGeocoder({'provider': 'google'});
 var yandexAPI =  new GeocoderJS.createGeocoder('yandex');
 var onemapAPI = new OneMapProvider();
-var MapGeocoder;
-
-/*
-Create an OpenStreetMap with the following params:
-div_id: id of the div element which contains the map, 
-	make sure the element has a defined height
-center: array to hold the geocode for the map center
-level: zoom level
-*/
+var MAPGEOCODER = {
+    onemap : onemapAPI,
+    google : googleAPI,
+    yandex : yandexAPI
+};
 
 function create_icon (color, number){
     //console.log("creating icon" + NUM_ICON_PATH+'/'+color+'/'+'number_'+number+'.png');
@@ -49,6 +45,13 @@ function create_icon (color, number){
 	return icon;
 }
 
+/*
+Create an OpenStreetMap with the following params:
+div_id: id of the div element which contains the map, 
+	make sure the element has a defined height
+center: array to hold the geocode for the map center
+level: zoom level
+*/
 function create_osmap(map_opts){
 	var div_id = map_opts.div_id;
 	var center = map_opts.center;
@@ -70,14 +73,6 @@ function create_osmap(map_opts){
     
     map.locate({setView: true, maxZoom: zoom});
     L.tileLayer(TILE_URL_TEMPLATE,TILE_LAYER_OPTIONS).addTo(map);
-    //var geocoder = L.Control.Geocoder.Google();
-    
-    //MAP_GEOCODER = L.Control.geocoder({geocode: geocoder}).addTo(map);
-    //MAP_GEOCODER = L.Control.geocoder().addTo(map);
-    //map.invalidateSize(false);
-    //var marker = L.marker(center).addTo(map);
-    //For Testing only
-    //marker.bindPopup("<b>Testing</b><br>").openPopup();
     return map;
 }//End of create_osmap
 
@@ -94,7 +89,7 @@ function handleLocationError(e){
 * 4.1 Retrieve the icon
 * 4.2 Add to map
 */
-function show_routes_osmap(map_opts, routes, multi_route_warning_id, color_legend_id){
+function show_routes_osmap(map_opts, closed_plan, multi_route_warning_id, color_legend_id){
     var map = create_osmap(map_opts);
     var time_delay;
     
@@ -104,93 +99,103 @@ function show_routes_osmap(map_opts, routes, multi_route_warning_id, color_legen
         time_delay = (1000/REQ_PER_MIN);
     
     var color_size = COLOR_ARRAY.length;
-    var route_size = Object.keys(routes).length;
+    var route_size = closed_plan.get_fleet().length;
+    
     if (route_size >= color_size) {
         show_item(multi_route_warning_id);
         route_size = color_size;
     }
+    
     var map_legend_item = $(color_legend_id);
-    
-    
     //Make sure the map_legend is empty
     map_legend_item.empty();
     
-    var out_counter = 0;
-    var fleets = Object.keys(routes);
-    var total_interval = time_delay * routes[fleets[0]].length;
     
-    //Double recursive function to properly delay the request sent
-    function outer_loop(){
-        setTimeout(function(){
-            //console.log("Total interval is : " + total_interval);
-            if (out_counter >= route_size)
-                return;
-            
-            var icon_color = COLOR_ARRAY[out_counter];
-            var fleet_no = fleets[out_counter];
-            var record = routes[fleet_no];
-            var inner_counter = 0;
-            var inner_max = record.length;
-            
-            if (inner_max >= MAX_NUM_PER_ROUTE)
-                inner_max = MAX_NUM_PER_ROUTE;
-            
-            total_interval = time_delay * inner_max;
-            
-            var img_url = NUM_ICON_PATH+'/'+icon_color+'/'+TRUCK_IMG;
-            map_legend_item.append('<td>' + fleet_no + '<img src='+img_url+'></td>');
-            
-            function inner_loop(){
-                setTimeout(function(){
-                    if (inner_counter >= inner_max)
-                        return;
-                    var icon = create_icon(icon_color, inner_counter+1);
-                    var search_str
-                    if (record[inner_counter].onemap_address){
-                        MapGeocoder = onemapAPI;
-                        search_str = record[inner_counter].onemap_address;
-                    }
-                    else{
-                        MapGeocoder = googleAPI;
-                        search_str = record[inner_counter].full_address;
-                    }
-                        
-                    var popup_str = "Fleet: " + fleet_no + " Address: "+ search_str;
-                    mark_geocode(map, search_str, icon, popup_str);
-                    inner_counter++;
-                    inner_loop();
-                }, time_delay);
-            }
-            inner_loop();
-            out_counter++;
-            outer_loop();
-        }, total_interval);
+    //Define map handler which include constant and various callback for map generation
+    var map_handler = {};
+	map_handler.loc_key = "destination";
+	map_handler.max_per_route = MAX_NUM_PER_ROUTE;
+	map_handler.max_route_no = route_size;
+    
+    /* Fleet: based on the counter to set the color
+    *  and truck imag for the vehicle.
+    */
+	map_handler.fleet_latlng_callback = function (vehicle, counter) {
+        //console.log("fleet_latlng_callback for vehicle " + counter)
+
+        var icon_color = COLOR_ARRAY[counter];
+        vehicle.icon_color = icon_color;
+        return vehicle
+	}
+
+	map_handler.vehicle_latlng_callback = function (vehicle, task, counter){
+        //console.log("vehicle_latlng_callback task " + counter);
+        
+        task.vehicle_id = vehicle.vehicle_id;
+        task.icon_color = vehicle.icon_color;
+        task.seq = counter + 1;
+        
+        return task;
+	}
+    
+    map_handler.task_latlng_callback = function (task, loc){
+
+        loc.vehicle_id = task.vehicle_id;
+        loc.icon_color = task.icon_color;
+        loc.seq = task.seq;
+        return loc;
     }
-    outer_loop();
+
+	map_handler.loc_latlng_callback = function (loc) {
+		//console.log("loc_latlng_callback for location");
+        
+        var icon = create_icon(loc.icon_color, loc.seq);
+        var marker;
+        var popup_str = "Vehicle : " + loc.vehicle_id + "  Address: "+ loc.full_address;
+        if (loc.lat){
+            var center = [loc.lat, loc.lng];
+            if (icon){
+                marker = L.marker(center, {icon:icon}).addTo(map);
+            }
+            else {
+                marker = L.marker(center).addTo(map);
+            }
+            marker.bindPopup(popup_str);
+        }
+	}
+    
+    map_handler.loc_direction_callback = function (loc) {
+        //console.log("loc_direction_callback for location");
+        
+        var latlngs = loc.direction_summary.latlngs;
+        var total_time = loc.direction_summary.total_time.toFixed(2);
+        var distance = loc.direction_summary.distance.toFixed(2);
+        
+        var polyline = L.polyline(latlngs, {color: loc.icon_color}).addTo(map);
+        
+        var popup_str = "The distance between the 2 locations is: " + distance + " km. The travel time is " + total_time + " mintues."; 
+        polyline.bindPopup (popup_str);
+           
+    }
+
+    map_handler.route_directions_summary_callback = function(vehicle){
+        //console.log("route_directions_summary_callback for vehicle");
+        var truck_img = NUM_ICON_PATH+'/'+vehicle.icon_color+'/'+TRUCK_IMG;
+        var total_time = vehicle.directions_summary.total_time.toFixed();
+        var distance = vehicle.directions_summary.distance.toFixed();
+        
+        map_legend_item.append('<td>' + vehicle.vehicle_id + 
+                               '<img src=' + truck_img+ '><p>' 
+                               + distance + ' km <p>'+ total_time + ' mins </td>');
+        //print_obj(vehicle);
+    }
+    
+    closed_plan.get_fleet_latlngs(time_delay, map_handler);
+    closed_plan.get_fleet_directions(time_delay*10, map_handler);
+    closed_plan.get_fleet_directions_summary(time_delay*10, map_handler);
+    
     return map;
 }
 
-function mark_geocode(map, address, icon, popup_str){
-    //console.log("Marking..." + address + " with icon " + icon);
-    MapGeocoder.geocode(address, function(result) {
-    var r = result[0];
-    var marker;
-        
-    if (r){
-        var center = [r.latitude, r.longitude];
-        
-        if (icon){
-            marker = L.marker(center, {icon:icon}).addTo(map);
-            }
-        else{
-             marker = L.marker(center).addTo(map);
-            }
-        
-        if (popup_str) {
-            //popup_str += " [" + r.latitude + "," + r.longitude + "]";
-            marker.bindPopup(popup_str);
-        }
-            
-        }             
-    });
-}
+
+

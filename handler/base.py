@@ -3,9 +3,10 @@ Define the various classes for RequestHandler
 """
 
 import webapp2
-import config
 import json
+import logging
 
+import config
 from config import JINJA_ENV
 
 #from utils import ga_tracking
@@ -29,6 +30,11 @@ class BaseHandler(webapp2.RequestHandler):
     def render_str(self, template, **params):
         #Key for OneMap API Javascript
         params['onemap_key'] = config.ONEMAP_KEY
+
+        if config.DEBUG:
+            logging.debug("One Map Key [parma]: %s" %params['onemap_key'])
+            print ("One Map Key [parma]: %s" %params['onemap_key']);
+
         t = JINJA_ENV.get_template(template)
         return t.render(params)
 

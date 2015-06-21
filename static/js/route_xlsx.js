@@ -32,22 +32,6 @@ function get_header(worksheet) {
 }
 
 /*
-* This function sorts the json array based on timestamp
-* It first sort by the start_tm then by end_tm
-*/
-function sort_by_tm(j_array){
-    j_array.sort(function(a, b){
-        if (a.d_time.start_tm !== b.d_time.start_tm)
-        {
-            return a.d_time.start_tm - b.d_time.start_tm;
-        }
-        else{
-            return a.d_time.end_tm - b.d_time.end_tm;
-        }
-    });
-}
-
-/*
 * This function takes in worksheet output array, filter
 * to produce the desired json output
 * Filter format:
@@ -76,45 +60,85 @@ function filter_worksheet(sheet_output, filter, sel_by_val){
             
         filtered_data.push(row);
     }
-    var map_json = create_map_json(filtered_data);
-    sort_by_tm(map_json);
-    return map_json;
+    return filtered_data;
+}
+/*
+* This function takes in the filtered worksheet data
+* and create and Plan object for mapping
+*/
+function create_close_plan(filtered_data){
+    var _vehicle_id_array = [];
+    var fleet = [];
+    var _dt_form = [];
+    
+    for (var idx = 0; idx < filtered_data.length; idx++){
+        var tm_window = new TimeWindow(filtered_data[idx]);
+        var location = new Location(filtered_data[idx]);
+        var task = new Task(filtered_data[idx]);
+        task.set_destination(location);
+        task.set_delivery_tm_window(tm_window);
+        var vehicle = new Vehicle(filtered_data[idx]);
+        
+        //Check if the vehicle is already in the plan
+        var v_idx = $.inArray(vehicle.vehicle_id, _vehicle_id_array);
+        
+        //New route
+        if (v_idx === -1) {
+            _vehicle_id_array.push(vehicle.vehicle_id);
+            var new_route = [];
+            vehicle.set_route(new_route);
+            fleet.push(vehicle);
+            v_idx = _vehicle_id_array.length - 1;
+        }
+        
+        //Add the task into the vehicle's route
+        fleet[v_idx].add_task(task);
+        
+        var _dt_obj = {};
+        _dt_obj.vehicle_id = vehicle.vehicle_id;
+        _dt_obj.task = task;
+        _dt_form.push(_dt_obj);
+    }
+    
+    for (var idx = 0; idx < fleet.length; idx++){
+        //Sort each vehicle's route by timestamp
+        fleet[idx].sort_route_by_delivery_tm();   
+    }
+    var close_plan = new ClosedPlan(fleet);
+    close_plan.set_dt_form(_dt_form);
+    return close_plan;
 }
 
 /*
-* This function takes in the filter workeet data
+* This function takes in the filter worksheet data
 * and create the json object for mapping
 */
-function create_map_json(filtered_data){
+/*function create_map_json(filtered_data){
     var map_json = [];
     for (var idx = 0; idx < filtered_data.length; idx++){
-        var d_time = new Delivery_Time(filtered_data[idx])
+        var tm_window = new TimeWindow(filtered_data[idx])
         var fleet = new Fleet(filtered_data[idx]);
         var location = new Location(filtered_data[idx]);
         var tmp_obj = {};
-        tmp_obj[Delivery_Time.key_name] = d_time;
+        tmp_obj[TimeWindow.key_name] = tm_window;
         tmp_obj[Fleet.key_name] = fleet;
         tmp_obj[Location.key_name] = location;
         map_json.push(tmp_obj);
     }
+	print_obj(map_json);
     return map_json;
-}
+}*/
 
 /*
 * This function accept the whole data set
 * and filter the data based on selected date & time
 */
-function filter_route_by_dt(sheet_data, start_tm, end_tm){
+/*function filter_route_by_dt(sheet_data, start_tm, end_tm){
     var route_data = {};
     for (var idx = 0; idx < sheet_data.length; idx++){
         var record = sheet_data[idx];
-        /*
-        * check the timestamp and reject the below cases:
-        * 1. order end before the start_tm
-        * 2. order start after the end_tm
-        */
-        if ( record.d_time.end_tm < start_tm || 
-             record.d_time.start_tm > end_tm
+        if ( record.tm_window.end_tm < start_tm || 
+             record.tm_window.start_tm > end_tm
            )
             continue;
         var key = record.fleet.fleet_no;
@@ -127,7 +151,7 @@ function filter_route_by_dt(sheet_data, start_tm, end_tm){
         }
     }
     return route_data;
-}
+}*/
 
 function process_workbook(workbook, ignore_headers){
     //Get the first worksheet content
@@ -151,21 +175,26 @@ function handleMap(e){
     var sel_end_tm = $(e.data.selected_end_tm_id).val();
     var start_tm = covert_to_second(sel_date, sel_start_tm);
     var end_tm = covert_to_second(sel_date, sel_end_tm);
+    
     if (end_tm < start_tm){
       alert("Please make sure the end time is not earlier than start time!");
       return;
     }
     show_item(e.data.map_panel_id);
     
-    var route_data = filter_route_by_dt(pageVar.sheet_json_data, start_tm, end_tm);
+    var route_data = pageVar.closed_plan.get_fleet();
+    
+    for (var idx = 0; idx < route_data.length; idx++){
+        route_data[idx].filter_route_by_delivery_tm(start_tm, end_tm);
+    }
     
     var map_opts = {
 		  div_id: e.data.map_div_id,
 		  //center: [1.443930, 103.785256],
 		  zoom : e.data.map_zoom_level, 
         };
-    
-    show_routes_osmap(map_opts, route_data, e.data.multi_route_warning_id, e.data.color_legend_id);
+    var new_plan = new ClosedPlan(route_data);
+    show_routes_osmap(map_opts, new_plan, e.data.multi_route_warning_id, e.data.color_legend_id);
 }
 
 function handleClickConfirm(e){
@@ -173,16 +202,20 @@ function handleClickConfirm(e){
         var dt_table_bar = $(e.data.dt_table_bar_id);
         update_progress_bar(dt_table_bar, 65, "Processing Data", "progress-bar-warning progress-bar-striped");
     }
-    var filter = get_select_text();
-    var tb_data = filter_worksheet(e.data.output, filter, e.data.sel_by_val);
-    pageVar.sheet_json_data = tb_data;
-    show_item(e.data.route_data_id);
     
+    var filter = get_select_text();
+    var filtered_data = filter_worksheet(e.data.output, filter, e.data.sel_by_val);
+    var closed_plan = create_close_plan(filtered_data);
+    var tb_data = closed_plan.get_dt_form();
+    pageVar.closed_plan = closed_plan;
+    
+    show_item(e.data.route_data_id);
     var tb_header = get_select_label(e.data.ignore_headers);
-    display_dataTable(e.data.data_table_id, tb_data, tb_header, DataTableMap);
+    display_dataTable(e.data.data_table_id, tb_data, tb_header);
     update_progress_bar(dt_table_bar, 100, "Processed data ", "progress-bar-info");
     show_item(e.data.map_filter_panel_id);
-    var date_val = tb_data[0].d_time.delivery_date;
+    
+    var date_val = tb_data[0].task.delivery_tm_window._tm_window_date;
     $(e.data.selected_date_id).val(date_val);
 }
 
@@ -220,12 +253,15 @@ function handleDropSelect(e) {
     reader.onload = function(event) {
         var data = event.target.result;
         var rawStr = fix_data(data);
+        
         try {
             var workbook = XLSX.read(btoa(rawStr), {type: 'base64'});
+            
             if (workbook.SheetNames.length > 1){
                 show_item(e.data.m_sheet_warning_id);
             }
-        
+            
+            //Read the worksheet based on the selected options
             var output = process_workbook(workbook, e.data.ignore_headers);
             
             var click_confirm_param = {
@@ -250,7 +286,7 @@ function handleDropSelect(e) {
         
         //For qunit test
         var qunit_e = $.Event('q_drop_end',{});
-        $('body').trigger(qunit_e);
+        $('body').trigger(qunit_e, {output});
     };
     
     reader.readAsArrayBuffer(f);

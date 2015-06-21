@@ -164,6 +164,7 @@ function get_select_label(ignore_list){
         if (ignore_list)
             if ($.inArray(key, ignore_list) !== -1)
                 return;
+        
         var val = $(this).find("option:selected").text().trim();
         if (val !== "Choose the option") 
         {
@@ -218,19 +219,19 @@ function covert_to_second(date_str, tm_str){
 * tb_id: the html dataTable id
 * tb_data: the data source for the data
 * tb_header: the key and display text for the table header
-* tb_col_map: map the key to the data source structure
+* ROUTE_PLAN_HTML: map the key to the data source structure
 */
-function display_dataTable(tb_id, tb_data, tb_header, tb_col_map){
+function display_dataTable(tb_id, tb_data, tb_header){
     
     var tb_col_def =[];
     var key, table;
    
     //print_obj(tb_header);
     for (key in tb_header){
-        if (key in tb_col_map){
+        if (key in ROUTE_PLAN_HTML){
             var tmp_obj = {};
             tmp_obj.title = tb_header[key];
-            tmp_obj.data = tb_col_map[key];
+            tmp_obj.data = ROUTE_PLAN_HTML[key].full_key;
             tb_col_def.push(tmp_obj);
         }
     }
@@ -250,8 +251,6 @@ function display_dataTable(tb_id, tb_data, tb_header, tb_col_map){
         });
     return true;
 }
-
-
 
 
 

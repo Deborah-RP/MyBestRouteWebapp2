@@ -89,7 +89,7 @@ OneMapProvider.prototype.geocode = function (searchString, callback) {
                     text: The direction text.
                     ETA: The estimated time of arrival at the route segment in the local time.
  */
-OneMapProvider.prototype.get_route = function(loc_array, callback){
+OneMapProvider.prototype.get_direction = function(loc_array, callback){
     //Check location list length, make sure it's between 2 and 9
     var error_log = "Error at OneMapProvider.get_route : ";
     var route_result = {};
@@ -112,20 +112,26 @@ OneMapProvider.prototype.get_route = function(loc_array, callback){
                 console.log(error_log + "no Route found");
                 return false;
             }
-        
-        var tmp_paths = routeResults.results.routes.features[0].geometry.paths[0];
-        route_result.paths = [];
-        for (var idx = 0; idx < tmp_paths.length; idx++){
-            var tmp_p = tmp_paths[idx];
-            var tmp_r = _this.cv.computeLatLon(tmp_p[1], tmp_p[0]);
-            var tmp_coord = [tmp_r.lon, tmp_r.lat];
-            route_result.paths.push(tmp_coord);
-        }
-        
-        route_result.total_time = routeResults.results.directions[0].summary.totalTime;
-        route_result.distance = routeResults.results.directions[0].summary.totalLength;
-        callback(route_result);
+        try {
+            var tmp_paths = routeResults.results.routes.features[0].geometry.paths[0];
+            route_result.paths = [];
+            for (var idx = 0; idx < tmp_paths.length; idx++){
+                var tmp_p = tmp_paths[idx];
+                var tmp_r = _this.cv.computeLatLon(tmp_p[1], tmp_p[0]);
+                var tmp_coord = [tmp_r.lon, tmp_r.lat];
+                route_result.paths.push(tmp_coord);
+                }
+
+            route_result.total_time = routeResults.results.directions[0].summary.totalTime;
+            route_result.distance = routeResults.results.directions[0].summary.totalLength;
+            callback(route_result);
+            }
+        catch(err){
+                console.log(error_log + "unexpected error " + err.message);
+                print_obj(loc_array);
+                return false;
+            
+            }
     });
     return true;;
 }
-

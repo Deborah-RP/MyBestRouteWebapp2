@@ -36,10 +36,10 @@
 
 {% block javascript_block %}
     {% include 'xlsx_js.html' %} 
-    {% include 'map_js.html' %} 
 	
     <script>
         var pageVar = {};
+		pageVar.plan_type = 'close';
 		
         pageVar.dnd_id = "#fileDnD";
         pageVar.selected_id = "#fileSelected";
@@ -81,8 +81,8 @@
 				m_sheet_warning_id : "#multiSheetWarning",
 				read_bar_id : "#readData",
 				confirm_opt_id : "#confirmOpt",
-				ignore_headers : ["date_format", "country"], 
-                sel_by_val: {country:"#country"},
+				ignore_headers : ["_date_format", "close_delivery_country"], 
+                sel_by_val: {close_delivery_country:"#close_delivery_country"},
 				dt_table_bar_id : "#dtTableBar", 
 				route_data_id : "#routeDataPanel", 
 				data_table_id : "#routeTable",
