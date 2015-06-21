@@ -3,19 +3,19 @@
 <div class="form-horizontal">
 
     <div class="form-group">
-        <label for="address" class="col-md-4 control-label"><abbr title="Required for non-SG address">Address</abbr></label>
-        <select id="address" class="col-md-7"></select>
+        <label for="close_delivery_address" class="col-md-4 control-label"><abbr title="Required for non-SG address">Address</abbr></label>
+        <select id="close_delivery_address" class="col-md-7"></select>
     </div>
     
     <div class="form-group">
-        <label for="delivery_date" class="col-sm-4 control-label"><abbr title="Default value is today if no column is selected">Delivery Date</abbr></label>
-        <select id="delivery_date" class="col-sm-7" onchange="show_item(set_date_format)">
+        <label for="_tm_window_date" class="col-sm-4 control-label"><abbr title="Default value is today if no column is selected">Delivery Date</abbr></label>
+        <select id="_tm_window_date" class="col-sm-7" onchange="show_item(set_date_format)">
         </select>
     </div>
     
     <div id="set_date_format" class="form-group has-warning" style="display: none;">
-        <label for="date_format" class="col-sm-4 control-label"><abbr title="Please indicate the date format">Date Format</abbr></label>
-        <select id="date_format" class="col-sm-7">
+        <label for="_date_format" class="col-sm-4 control-label"><abbr title="Please indicate the date format">Date Format</abbr></label>
+        <select id="_date_format" class="col-sm-7">
             <option>Choose the option</option>
             <option>YYYY-MM-DD</option>
             <option>YYYY-DD-MM</option>
@@ -26,32 +26,32 @@
     
     
     <div class="form-group">
-        <label for="start_tm_slot" class="col-sm-4 control-label"><abbr title="Default value is 9pm if no column is selected">Start Time</abbr></label>
-            <select id="start_tm_slot" class="col-sm-7">
+        <label for="_start_tm_slot" class="col-sm-4 control-label"><abbr title="Default value is 9pm if no column is selected">Start Time</abbr></label>
+            <select id="_start_tm_slot" class="col-sm-7">
             </select>
     </div>
 
     <div class="form-group">
-        <label for="end_tm_slot" class="col-sm-4 control-label"><abbr title="Default value is 11pm if no column is selected">End Time</abbr></label>
-        <select id="end_tm_slot" class="col-sm-7">
+        <label for="_end_tm_slot" class="col-sm-4 control-label"><abbr title="Default value is 11pm if no column is selected">End Time</abbr></label>
+        <select id="_end_tm_slot" class="col-sm-7">
             </select>
     </div>    
 
     <div class="form-group">
-        <label for="city" class="col-sm-4 control-label">City</label>
-        <select id="city" class="col-sm-7">
+        <label for="close_delivery_city" class="col-sm-4 control-label">City</label>
+        <select id="close_delivery_city" class="col-sm-7">
         </select>
     </div>	
     
     <div class="form-group">
-        <label for="state" class="col-sm-4 control-label">State/Province</label>
-        <select id="state" class="col-sm-7">
+        <label for="close_delivery_state" class="col-sm-4 control-label">State/Province</label>
+        <select id="close_delivery_state" class="col-sm-7">
         </select>
     </div>
     
     <div class="form-group">
-        <label for="country" class="col-md-4 control-label">Country</label>
-            <select id="country" class="col-md-7">
+        <label for="close_delivery_country" class="col-md-4 control-label">Country</label>
+            <select id="close_delivery_country" class="col-md-7">
                 {% include 'country_option.html' %}
             </select>
         </div>    

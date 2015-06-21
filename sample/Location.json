@@ -1,0 +1,11 @@
+Location
+
+{
+	  "address": "test address",
+	  "city": "Singapore",
+	  "country": "Singapore",
+	  "full_address": "test address, 730001, Singapore, test state, Singapore",
+	  "onemap_address": "730001",
+	  "postal": "730001",
+	  "state": "test state"
+};
