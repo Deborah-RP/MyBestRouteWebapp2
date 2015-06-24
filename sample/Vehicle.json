@@ -1,0 +1,27 @@
+Vehicle
+
+{
+  "route": [
+    {
+      "delivery_tm_window": {
+        "_date_format": "YYYY-MM-DD",
+        "_end_tm_slot": "23:00",
+        "_start_tm_slot": "09:00",
+        "_tm_window_date": "2013-12-17",
+        "end_tm": 1387292400,
+        "start_tm": 1387242000
+      },
+      "destination": {
+        "address": "test address",
+        "city": "Singapore",
+        "country": "Singapore",
+        "full_address": "test address, 730001, Singapore, test state, Singapore",
+        "onemap_address": "730001",
+        "postal": "730001",
+        "state": "test state"
+      },
+      "task_id": "test"
+    }
+  ],
+  "vehicle_id": "1234"
+}
