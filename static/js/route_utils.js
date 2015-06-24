@@ -1,4 +1,5 @@
 function handleShowItem(e) {
+    //console.log("showing " + e.data.show_id);
     $(e.data.show_id).show();
 }
 

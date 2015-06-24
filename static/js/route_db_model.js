@@ -104,14 +104,14 @@ Location.prototype.get_loc_direction = function(pre_loc, direction_handler){
 
 Location.prototype.get_loc_str = function(){
     var loc_str;
-    if (this.lat){
+    /*if (this.lat){
         loc_str = this.lng + "," + this.lat;
     }
+    else*/
+    if (this.onemap_address)
+        loc_str = this.onemap_address;
     else
-        if (this.onemap_address)
-            loc_str = this.onemap_address;
-        else
-            loc_str = this.full_address;
+        loc_str = this.full_address;
     
     return loc_str;
 }

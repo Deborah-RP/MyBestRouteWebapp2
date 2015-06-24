@@ -113,18 +113,18 @@ OneMapProvider.prototype.get_direction = function(loc_array, callback){
                 return false;
             }
         try {
-            var tmp_paths = routeResults.results.routes.features[0].geometry.paths[0];
-            route_result.paths = [];
-            for (var idx = 0; idx < tmp_paths.length; idx++){
-                var tmp_p = tmp_paths[idx];
-                var tmp_r = _this.cv.computeLatLon(tmp_p[1], tmp_p[0]);
-                var tmp_coord = [tmp_r.lon, tmp_r.lat];
-                route_result.paths.push(tmp_coord);
-                }
+                var tmp_paths = routeResults.results.routes.features[0].geometry.paths[0];
+                route_result.paths = [];
+                for (var idx = 0; idx < tmp_paths.length; idx++){
+                    var tmp_p = tmp_paths[idx];
+                    var tmp_r = _this.cv.computeLatLon(tmp_p[1], tmp_p[0]);
+                    var tmp_coord = [tmp_r.lon, tmp_r.lat];
+                    route_result.paths.push(tmp_coord);
+                    }
 
-            route_result.total_time = routeResults.results.directions[0].summary.totalTime;
-            route_result.distance = routeResults.results.directions[0].summary.totalLength;
-            callback(route_result);
+                route_result.total_time = routeResults.results.directions[0].summary.totalTime;
+                route_result.distance = routeResults.results.directions[0].summary.totalLength;
+                callback(route_result);
             }
         catch(err){
                 console.log(error_log + "unexpected error " + err.message);

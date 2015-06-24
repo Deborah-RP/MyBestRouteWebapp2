@@ -286,7 +286,7 @@ function handleDropSelect(e) {
         
         //For qunit test
         var qunit_e = $.Event('q_drop_end',{});
-        $('body').trigger(qunit_e, {output});
+        $('body').trigger(qunit_e, {output:output});
     };
     
     reader.readAsArrayBuffer(f);
