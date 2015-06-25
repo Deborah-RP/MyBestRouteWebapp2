@@ -75,9 +75,10 @@ Location.prototype.get_loc_direction = function(pre_loc, direction_handler){
     direction_summary.latlngs = [];
     direction_summary.total_time = 0;
     direction_summary.distance = 0;
-    this.direction_summary = direction_summary;
+    
     
     if (this.lat === pre_loc.lat && this.lng === pre_loc.lng) {
+        this.direction_summary = direction_summary;
         return;
     }
     
@@ -88,8 +89,12 @@ Location.prototype.get_loc_direction = function(pre_loc, direction_handler){
     var _this = this;
     
     _this.map_provider.get_direction(loc_array, function(result){
+        _this.direction_summary = {};
         
         if (result === false){
+            _this.direction_summary.latlngs = [];
+            _this.direction_summary.total_time = 0;
+            _this.direction_summary.distance = 0;
             return;
         }
         
