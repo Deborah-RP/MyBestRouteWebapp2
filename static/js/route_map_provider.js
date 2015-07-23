@@ -97,7 +97,8 @@ OneMapProvider.prototype.get_direction = function(loc_array, callback){
     
     if (loc_array === undefined){
         console.log(error_log + "undefined loc_array");
-        return false;
+        callback(false);
+        return;
     }
     
     if (loc_array.length < 2 || loc_array.length > 9) {
@@ -108,9 +109,10 @@ OneMapProvider.prototype.get_direction = function(loc_array, callback){
     route_data.routeStops = loc_array.join(";");
     route_data.routeMode = 'Drive';
     route_data.GetRoute(function (routeResults){
-        if (routeResults.results == "No results") {
+        if (routeResults.results === "No results") {
                 console.log(error_log + "no Route found");
-                return false;
+                callback(false)
+                return;
             }
         try {
                 var tmp_paths = routeResults.results.routes.features[0].geometry.paths[0];
@@ -129,9 +131,9 @@ OneMapProvider.prototype.get_direction = function(loc_array, callback){
         catch(err){
                 console.log(error_log + "unexpected error " + err.message);
                 print_obj(loc_array);
-                return false;
-            
+                callback(false)
+                return;
             }
     });
-    return true;;
+    return;;
 }

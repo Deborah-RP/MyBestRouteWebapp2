@@ -1,0 +1,90 @@
+{% extends 'base_dataTables.html' %} 
+
+{% block page_block %}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    <h2>Price Plan<h2>
+                </div>
+                <div class="panel-body">
+                    <div class="dataTable_wrapper">
+                        <table class="table table-striped table-bordered table-hover" id="Show_Table">
+                        </table>
+                        <input type='hidden' value='{{form.action}}' id='tb_ajax_url'>
+                        <!-- /.table-responsive -->
+                    </div>
+                    <!-- /.dataTable_wrapper -->
+                </div>
+                <!-- /.panel-body -->                        
+            </div>
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    <h2>{{ form.header }}<h2>
+                </div>
+                <div class="panel-body">
+                    <form method="post" action="{{form.action}}" role="form" id="{{form.edit_id}}" data-toggle="validator" class="form-horizontal well">
+                        <input type='hidden' value="{{form.edit_type}}" name='formType'> 
+                        {% include 'edit_form_fields.html' %}
+                        <div class="form-group">
+                            <input class="btn btn-lg btn-success col-md-4 col-md-offset-4" type="submit" value="Update" name="submitBtn">
+                    </form>
+                    <input type='hidden' value='{{form.dt_source}}' id='dt_source'>
+                </div>
+                <!-- /.panel-body -->                        
+            </div>
+
+            <div class="load_icon"><!-- Place at bottom of page --></div>    
+            <!-- class="panel" -->
+        </div>
+            
+            <!-- class="panel" -->
+        </div>
+         <!--class="col-lg-12" -->
+    </div>
+    <!-- /.row -->            
+</div>
+<!--/.container-fluid-->
+{% endblock %} 
+
+{% block javascript_block %}
+<script>
+    function init_page() {
+        var $doc = $(document);
+        $body = $("body");
+        $doc.on({
+            ajaxStart: function () {
+                $body.addClass("ajax_load");
+            },
+            ajaxStop: function () {
+                $body.removeClass("ajax_load");
+            },
+        });
+        var tb_params = {};
+        tb_params.tb_id = "#Show_Table";
+        tb_params.ajax = $("#tb_ajax_url").val();
+        tb_params.dt_source = $("#dt_source").val();
+        //print_obj(tb_params.ajax);
+        //tb_params.order = [ 0, 'asc' ];
+        tb_params.dom = '<"clear">flritp';
+        tb_params.tableTools = null;
+        init_tb_cols(tb_params)
+
+        $("form").each(function(){
+            $(this).validator().submit(function (e) {   
+                if (e.isDefaultPrevented()) {
+                    //console.log("Validation failed!");
+                    return;
+                } else {
+                    form_async_submit($(this), e, null);
+                }
+            });
+        });
+    }
+
+    window.onload = init_page;
+</script>
+        
+{% endblock %} 

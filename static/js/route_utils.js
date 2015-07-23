@@ -1,3 +1,11 @@
+
+//Get the object from the multilevel string key such as "prop1.prop2.prop3"
+function get_desc_obj(obj, str_keys){
+    var desc_keys = str_keys.split(".");
+    while (desc_keys.length && (obj = obj[desc_keys.shift()]));
+    return obj;
+}
+
 function handleShowItem(e) {
     //console.log("showing " + e.data.show_id);
     $(e.data.show_id).show();
@@ -32,7 +40,18 @@ function pad_str(old_str, symbol, str_len){
 *       value: css property value
 */
 
-function change_css (obj_css_array) {
+/*function change_css (obj_css_array) {
+         sample data
+        obj_css_array = [{
+			obj_id: pageVar.dnd_id,
+			css_array : [{
+				name: 'border',
+				value: '8px dotted #0B85A1'
+				}
+			]
+		}
+		];
+    
     if (typeof obj_css_array === "undefined") {
         console.log("undefined obj_css_array in function change_css");
         return false;
@@ -52,13 +71,14 @@ function change_css (obj_css_array) {
         });
     });
     return true;
-}
+}*/
 
 //Function to update the progress bar
-function update_progress_bar (bar, progress, strTxt, style){
-    if (typeof bar === "undefined")
-        return false;
+$.fn.update_progress_bar = function (progress, strTxt, style){
+    /*if (typeof bar === "undefined")
+        return false;*/
     
+    var bar = $(this);
     bar.hide();
     bar.css('transition', 'none');
     bar.css('width', progress+'%').attr('aria-valuenow', progress); 
@@ -94,8 +114,10 @@ function animate_progress_bar(bar, strTxt){
 }
 
 //Function to add options to select list from an array
-function add_select_options(options, ignore_list){
-    var selectList = $("select");
+$.fn.add_select_options= function (options, ignore_list){
+    
+    var $_this = $(this);
+    var selectList = $_this.find("select");
     
     selectList.each(function(){
         //Skip the select item which id is in the ignore list
@@ -103,7 +125,9 @@ function add_select_options(options, ignore_list){
             //console.log("Skip " + $(this).attr('id'));
             return;
         }
-        
+        var key = $(this).attr('id');
+        var label = $_this.find(" label[for='"+ key +"']").text().trim();
+      
         //Clear the select list first
         $(this).empty();
         
@@ -111,11 +135,23 @@ function add_select_options(options, ignore_list){
         .attr("value",-1)
         .text("Choose the option"));  
         
-        for (var key in options){
+        for (key in options){
             var value = options[key];
-            $(this).append($("<option> </option>")
-            .attr("value",key)
-            .text(value));
+            var lower_value = value.toLowerCase();
+            var lower_lable = label.toLowerCase();
+            
+            if (lower_lable.indexOf(lower_value) != -1){
+                 $(this).append(
+                     $("<option> selected</option>")
+                    .attr("value",key)
+                    .text(value)
+                    .attr("selected", true))
+            }
+            else {
+                $(this).append($("<option> </option>")
+                .attr("value",key)
+                .text(value));
+            }
         }
     });
 }
@@ -138,8 +174,9 @@ function get_select_val(){
 }
 
 //Function to get all the select elements with their text
-function get_select_text(){
-    var selectList = $("select");
+$.fn.get_select_text = function(){
+    var $_this = $(this);
+    var selectList = $_this.find("select");
     var tmpList = {};
     selectList.each(function(){
         var key = $(this).attr('id');
@@ -156,8 +193,9 @@ function get_select_text(){
 }
 
 //Function to get the select id and label
-function get_select_label(ignore_list){
-    var selectList = $("select");
+$.fn.get_select_label = function(ignore_list){
+    var $_this = $(this);
+    var selectList = $_this.find("select");
     var tmpList = {};
     selectList.each(function(){
         var key = $(this).attr('id');
@@ -215,43 +253,75 @@ function covert_to_second(date_str, tm_str){
     return tm;
 }
 
-/*
-* Display database with the datasource and column definition
-* tb_id: the html dataTable id
-* tb_data: the data source for the data
-* tb_header: the key and display text for the table header
-* ROUTE_PLAN_HTML: map the key to the data source structure
-*/
-function display_dataTable(tb_id, tb_data, tb_header){
-    
-    var tb_col_def =[];
-    var key, table;
-   
-    //print_obj(tb_header);
-    for (key in tb_header){
-        if (key in ROUTE_PLAN_HTML){
-            var tmp_obj = {};
-            tmp_obj.title = tb_header[key];
-            tmp_obj.data = ROUTE_PLAN_HTML[key].full_key;
-            tb_col_def.push(tmp_obj);
-        }
+function form_async_submit($form, e, tb_params) {
+    var $target = $($form.attr('data-target'));
+    if (tb_params) {
+        var table = $(tb_params.tb_id).DataTable();
     }
-    
-    if ($.fn.dataTable.isDataTable(tb_id)) {
-        $(tb_id).DataTable().destroy();
-        // empty in case the columns change
-        $(tb_id).empty();
-    }
-    
-    $(tb_id).DataTable({
-        destroy: true,
-        data: tb_data,
-        columns: tb_col_def,
-        paging: true,
-        ordering: true,
+    e.preventDefault();
+        $.ajax({
+            type: $form.attr('method'),
+            url: $form.attr('action'),
+            data: $form.serialize(),
+            success: function(data, status) {
+                if (data.status === true) {
+                    if (data.msg) {
+                        bootbox.alert(data.msg, function(){
+                            if (table) {
+                                $target.modal('hide');
+                                $form[0].reset();
+                                table.ajax.reload();
+                            }
+                            else {
+                                location.reload();
+                            }
+                        });
+                    }
+                    
+                    if (data.redirect){
+                         window.location.href = data.redirect;   
+                    }
+                }
+                else {
+                    if (data.msg) {
+                        bootbox.alert(data.msg);
+                    }
+                }
+            }
         });
-    return true;
 }
+
+function json_async_submit(tb_params, ajax_data){
+    if (tb_params.tb_id)
+    {
+        var table = $(tb_params.tb_id).DataTable();
+    }
+    var posting = $.post(tb_params.ajax, ajax_data);
+    posting.done(function(data){
+        if (data.status === true) {
+            if (data.msg) {
+                bootbox.alert(data.msg, function(){
+                    if (table) {
+                        table.ajax.reload();
+                    }
+                    else {
+                        location.reload();
+                    }
+                });
+                }
+            
+            if (data.redirect){
+                window.location.href = data.redirect;  
+                }
+            }
+        else {
+            bootbox.alert(data.msg);
+        }
+    });
+}
+
+
+
 
 
 

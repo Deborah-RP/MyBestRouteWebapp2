@@ -1,0 +1,95 @@
+{% extends 'base_dataTables.html' %} 
+
+{% block page_block %}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-12">
+            {% include 'dndexcel.html' %}
+            {% include "formconfig_init_upload_modal.html" %}
+            <div class="load_icon"><!-- Place at bottom of page --></div>    
+            <!-- class="panel" -->
+        </div>
+         <!--class="col-lg-12" -->
+    </div>
+    <!-- /.row -->            
+</div>
+<!--/.container-fluid-->
+{% endblock %} 
+
+{% block javascript_block %}
+<script>
+    function init_page() {
+        var $doc = $(document);
+        $body = $("body");
+        $("#dndPanel").show();
+        $doc.on({
+            ajaxStart: function () {
+                $body.addClass("ajax_load");
+            },
+            ajaxStop: function () {
+                $body.removeClass("ajax_load");
+            },
+        });
+
+        var pageVar = {};
+        //Register buttons with the show event
+        $("#setOptBtn").click(function () {
+            $("#upload_modal").modal('show');
+        })
+        $dnd_obj = $("#fileDnD");
+        
+        $file_selected = $("#fileSelected");
+        tb_params = {}
+        tb_params.ajax = $("#upload_form").attr("action")
+
+        $doc.on({
+            'dragenter dragover drop': handleDragenter,
+            'm_sheet_warning:on': function () {
+                $('#multiSheetWarning').show();
+            },
+            'm_sheet_warning:off': function () {
+                $('#multiSheetWarning').hide();
+            },
+            'read_xls:start': function (e, bar_text) {
+                $("#readData").update_progress_bar(65, bar_text,
+                    "progress-bar-warning progress-bar-striped");
+            },
+            'read_xls:stop': function (e) {
+                $("#readData").update_progress_bar(100, "Read data ",
+                    "progress-bar-info");
+            },
+            'add_xls_option': function (e, xlf_header, ignore_headers) {
+                $("#upload_modal").add_select_options(xlf_header, ignore_headers);
+            },
+            'process_wb:stop': function(e, upload_data){
+                $("#upload_modal").modal('hide');
+                var ajax_data = {
+                    formType: 'async_upload', 
+                    upload_data: upload_data,        
+                };
+                json_async_submit(tb_params, ajax_data);
+            }
+        });
+        
+        $dnd_obj.on({
+            'dragenter': handleDragenter,
+            'dragover': function (e) {
+                $(this).addClass('hover');
+                handleDragenter(e);
+            },
+        });        
+
+        var drop_select_param = {
+            opt_panel_id: "#upload_modal",
+            confirm_opt_id: "#uploadBtn",
+            confirm_callback_func: filter_wb_to_json,
+        };
+        $dnd_obj.on('drop', drop_select_param, handleDropSelect);
+        $file_selected.on('change', drop_select_param, handleDropSelect);
+    }
+
+    window.onload = init_page;
+</script>
+        
+{% endblock %} 

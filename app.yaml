@@ -1,5 +1,5 @@
-application: my-best-route
-version: testing-1
+application: my-route-planner
+version: 1
 runtime: python27
 api_version: 1
 threadsafe: true
@@ -10,10 +10,10 @@ handlers:
   
 - url: /css
   static_dir: static/css
-  
-- url: /test
-  static_dir: test
 
+- url: /swf
+  static_dir: static/swf
+  
 - url: /qunit
   static_dir: test/qunit
 
@@ -26,9 +26,37 @@ handlers:
 - url: /(.*\.(gif|png|jpg|ico|js|css|xml|txt))$
   static_files: \1
   upload: (.*\.(gif|png|jpg|ico|js|css|xml|txt))
+  
+- url: /admin/.*
+  script: google.appengine.ext.admin.application
+  login: admin
+  secure: always  
+  
+- url: /auth/.*
+  script: handler.auth.app
+  secure: always
+  
+- url: /user/.*
+  script: handler.personal_user.app
+  secure: always  
+  
+- url: /group_admin/.*
+  script: handler.group_admin.app
+  secure: always  
+  
+- url: /sys_admin/.*
+  script: handler.sys_admin.app
+  secure: always  
+
+- url: /super_admin/.*
+  script: handler.super_admin.app
+  secure: always
+  
+- url: /test/.*
+  script: test.app
 
 - url: /.*
-  script: main.app
+  script: handler.main.app
 
 libraries:
 - name: webapp2

@@ -1,0 +1,233 @@
+<div id="upload_modal" class="modal" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <a class="close" data-dismiss="modal">&times;</a>
+                <h3>Upload  Form Field</h3>
+            </div>
+            <div class="modal-body">
+                <form method="post" action="/super_admin/config_form" role="form" data-target='#create_modal' class="form-horizontal well">
+                    <input type='hidden' value="async_upload" name='formType'>
+                    <div class="form-group">
+
+                        <label for="_entity_id" class="col-md-3 col-md-offset-1 control-label">
+                            Entity ID
+
+
+                        </label>
+
+
+
+                        <select id="_entity_id" name="_entity_id" class="col-md-6 col-md-offset-1"></select>
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="kind_name" class="col-md-3 col-md-offset-1 control-label">
+                            Model Name
+
+                            <div class='text-danger'>(required)</div>
+
+
+                        </label>
+
+
+
+                        <select id="kind_name" name="kind_name" class="col-md-6 col-md-offset-1"></select>
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="prop_name" class="col-md-3 col-md-offset-1 control-label">
+                            Property Name
+
+                            <div class='text-danger'>(required)</div>
+
+
+                        </label>
+
+                        <select id="prop_name" name="prop_name" class="col-md-6 col-md-offset-1"></select>
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="label" class="col-md-3 col-md-offset-1 control-label">
+                            Label
+
+                            <div class='text-danger'>(required)</div>
+
+
+                        </label>
+
+
+
+                        <select id="label" name="label" class="col-md-6 col-md-offset-1"></select>
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="order" class="col-md-3 col-md-offset-1 control-label">
+                            Order
+
+                            <div class='text-danger'>(required)</div>
+
+
+                        </label>
+
+
+
+                        <select id="order" name="order" class="col-md-6 col-md-offset-1"></select>
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="create_attr" class="col-md-3 col-md-offset-1 control-label">
+                            Create Form Attribute
+
+
+                        </label>
+
+
+
+                        <select id="create_attr" name="create_attr" class="col-md-6 col-md-offset-1"></select>
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="edit_attr" class="col-md-3 col-md-offset-1 control-label">
+                            Edit Form Attributes
+
+
+                        </label>
+
+                        <select id="edit_attr" name="edit_attr" class="col-md-6 col-md-offset-1"></select>
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="table_attr" class="col-md-3 col-md-offset-1 control-label">
+                            Table Attributes
+
+
+                        </label>
+
+
+
+                        <select id="table_attr" name="table_attr" class="col-md-6 col-md-offset-1"></select>
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="input_name" class="col-md-3 col-md-offset-1 control-label">
+                            Input Name
+
+
+                        </label>
+
+
+
+                        <select id="input_name" name="input_name" class="col-md-6 col-md-offset-1"></select>
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="input_type" class="col-md-3 col-md-offset-1 control-label">
+                            Input Type
+
+
+                        </label>
+
+
+
+                        <select id="input_type" name="input_type" class="col-md-6 col-md-offset-1"></select>
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="place_holder" class="col-md-3 col-md-offset-1 control-label">
+                            Place Holder
+
+
+                        </label>
+
+                        <select id="place_holder" name="place_holder" class="col-md-6 col-md-offset-1"></select>
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="data_error" class="col-md-3 col-md-offset-1 control-label">
+                            Data Error
+
+
+                        </label>
+
+
+
+                        <select id="data_error" name="data_error" class="col-md-6 col-md-offset-1"></select>
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="rows" class="col-md-3 col-md-offset-1 control-label">
+                            Rows
+
+
+                        </label>
+
+
+
+                        <select id="rows" name="rows" class="col-md-6 col-md-offset-1"></select>
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="min" class="col-md-3 col-md-offset-1 control-label">
+                            Minimum Number
+
+
+                        </label>
+
+
+
+                        <select id="min" name="min" class="col-md-6 col-md-offset-1"></select>
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="max" class="col-md-3 col-md-offset-1 control-label">
+                            Maximum Number
+
+
+                        </label>
+
+
+                        <select id="max" name="max" class="col-md-6 col-md-offset-1"></select>
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="value" class="col-md-3 col-md-offset-1 control-label">
+                            Value
+
+
+                        </label>
+
+
+
+                        <select id="value" name="value" class="col-md-6 col-md-offset-1"></select>
+                    </div>
+
+
+                    <div class="form-group">
+                        <input type='button' class="btn btn-lg btn-success col-md-4 col-md-offset-2" value="Upload" id="uploadBtn">
+                        <input class="btn  btn-lg btn-warning col-md-2 col-md-offset-2" type="button" value="Close" data-dismiss="modal">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <h5><p class='text-warning text-center'>Form field with the same model and property name will replace the existing one.</p></h5>
+            </div>
+
+        </div>
+    </div>
+</div>

@@ -1,0 +1,60 @@
+<div id="create_priceplan_modal" class="modal" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <a class="close" data-dismiss="modal">&times;</a>
+                <h3>Create New Price Plan</h3>
+            </div>
+            <div class="modal-body">
+                <form method="post" action='/admin/price_plan' role="form" id="create_priceplan_form" data-toggle="validator" data-target='#create_priceplan_modal' class="form-horizontal well">
+                    <input type='hidden' value='async_create' name='formAction'>
+                    <div class="form-group">
+                        <label for="plan_name" class="col-md-3 col-md-offset-1 control-label">Plan Name</label>
+                        <input class="col-md-7" placeholder="Plan Name" name="plan_name" data-error="Please enter the plan name" required autofocus>
+                        <div class="help-block with-errors col-md-9 col-md-offset-3"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="plan_type" class="col-md-3 col-md-offset-1 control-label">Plan Type</label>
+                        <div class="radio">
+                            <label class="col-md-3">
+                                <input type="radio" name="plan_type" id="planTypeOption1" value="Personal" checked>Personal</label>
+                            <label>
+                                <input type="radio" name="plan_type" id="planTypeOption2" value="Business">Business</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="description" class="col-md-3 col-md-offset-1 control-label">Description</label>
+                        <textarea class="col-md-7" placeholder="Description" name="description" data-error="Please enter the plan description" rows="4" required></textarea>
+                        <div class="help-block with-errors col-md-9 col-md-offset-3"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="plan_price" class="col-md-3 col-md-offset-1 control-label">Price</label>
+                        <input class="col-md-7" placeholder="Plan Price" name="plan_price" data-error="Please enter the correct price" type="number" required>
+                        <div class="help-block with-errors col-md-9 col-md-offset-3"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="max_num_user" class="col-md-3 col-md-offset-1 control-label">Max Num of Users</label>
+                        <input class="col-md-7" placeholder="Max number of user in the group" name="max_num_user" data-error="Please enter the number" type="number" required>
+                        <div class="help-block with-errors col-md-9 col-md-offset-3"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="max_num_loc" class="col-md-3 col-md-offset-1 control-label">Max Num of Location</label>
+                        <input class="col-md-7" placeholder="Max number of location" name="max_num_loc" data-error="Please enter the number" type="number" required>
+                        <div class="help-block with-errors col-md-9 col-md-offset-3"></div>
+                    </div>
+                    <div class="form-group">
+                        <input class="btn btn-lg btn-success col-md-4 col-md-offset-2" type="submit" value="Create" name="submitBtn">
+                        <input class="btn  btn-lg btn-warning col-md-2 col-md-offset-2" type="button" value="Close" data-dismiss="modal">
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <div class="help-block with-errors col-md-9 col-md-offset-3">{{ status_msg }}</div>
+            </div>
+
+        </div>
+    </div>
+</div>

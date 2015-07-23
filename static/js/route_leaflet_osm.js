@@ -89,7 +89,7 @@ function handleLocationError(e){
 * 4.1 Retrieve the icon
 * 4.2 Add to map
 */
-function show_routes_osmap(map_opts, closed_plan, multi_route_warning_id, color_legend_id){
+function show_routes_osmap(map_opts, closed_plan, color_legend_id){
     var map = create_osmap(map_opts);
     var time_delay;
     
@@ -102,7 +102,7 @@ function show_routes_osmap(map_opts, closed_plan, multi_route_warning_id, color_
     var route_size = closed_plan.get_fleet().length;
     
     if (route_size >= color_size) {
-        show_item(multi_route_warning_id);
+        $(document).trigger('m_route_warning:on');
         route_size = color_size;
     }
     

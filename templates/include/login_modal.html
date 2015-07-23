@@ -1,0 +1,42 @@
+<div id="login_modal" class="modal" role="dialog">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <a class="close" data-dismiss="modal">&times;</a>
+                <h3>Login</h3>
+                <div style="float:right; font-size: 80%; position: relative; top:-10px"> 
+                    <a href="#forgot_pass_modal" data-toggle="modal" data-dismiss="modal">Forgot password?</a>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <form method="post" action="/auth/login" role="form" id="login_form" data-target="#login_modal" class="form-horizontal well" data-toggle="validator">
+                    <fieldset>
+                        <div class="form-group">
+                            <div class="input-group">
+                                <span class="input-group-addon "><i class="fa fa-user fa-fw"></i></span>
+                                <input class="form-control" placeholder="E-mail" name="email" type="email" data-error="Invalid email address" required autofocus>
+                            </div>
+                            <div class="help-block with-errors"></div>
+                        </div>
+                        <div class="form-group">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="fa fa-unlock  fa-fw"></i></span>
+                                <input class="form-control" placeholder="Password" name="password" type="password" data-error="Please enter your password" required>
+                            </div>
+                            <div class="help-block with-errors"></div>
+                        </div>
+                        <div class="form-group">
+                            <input class="btn btn-success col-md-4 col-md-offset-1" type="submit" value="Login" name="submitBtn">
+                            <input class="btn  btn-warning col-md-4 col-md-offset-2" type="button" value="Close" data-dismiss="modal">
+                        </div>
+                    </fieldset>
+                </form>
+            </div>
+            <div class="modal-footer">
+                Don't have an account? 
+                <a href="#signup_modal" data-toggle="modal" data-dismiss="modal">Sign Up Here</a>
+            </div>
+        </div>
+    </div>
+</div>

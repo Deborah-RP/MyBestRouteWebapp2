@@ -12,19 +12,18 @@
 				</div>
 				<!-- /input-group -->
 			</li>
-			
 			<li>
 				<a href="index.html"><i class="fa fa-bar-chart fa-fw"></i> Your Existing Route<span class="fa arrow"></span></a>
 				 <ul class="nav nav-second-level">
-				 	<li><a href="upload_route"><i class="fa fa-upload fa-fw"></i>Upload</a></li>
-				 	<li><a href="analyze_route"><i class="fa fa-map-marker fa-fw"></i>Analyze</a></li>
+				 	<li><a href="/upload_route">Upload</a></li>
+				 	<li><a href="/analyze_route">Analyze</a></li>
 				 </ul>
 			</li>
 			<li>
 				<a href="index.html"><i class="fa fa-truck fa-fw"></i> Fleet </a>
 			</li>
 			<li>
-				<a href="index.html"><i class="fa fa-home fa-fw"></i> Location </a>
+				<a href="index.html"><i class="fa fa-map-marker fa-fw"></i> Location </a>
 			</li>
 			<li>
 				<a href="index.html"><i class="fa fa-tasks fa-fw"></i> Plan </a>
@@ -35,6 +34,27 @@
 			<li>
 				<a href="index.html"><i class="fa fa-clock-o fa-fw"></i> Track </a>
 			</li>
+            {%if user.access_level >= 100 %}
+			<li>
+				<a href="index.html"><i class="fa fa-dashboard fa-fw"></i> Admin Dashboard<span class="fa arrow"></span></a>
+                <ul class="nav nav-second-level">
+                    {%if user.access_level >= 100 and user.access_level < 500 %}
+                        <li><a href="/group_admin/business_group">Manage Group Profile</a></li>
+                        <li><a href="/group_admin/users">Manage Group Users</a></li>
+                        <li><a href="/group_admin/upgrade_price_plan">Upgrade Price Plan</a></li>
+                    {% else %}
+                        {%if user.access_level >= 1000 %}
+                            <li><a href="/super_admin/init_config_form">Initialize HTML Form</a></li>
+                            <li><a href="/super_admin/config_form">HTML Form Configuration</a></li>
+                        {% endif %}
+                        <li><a href="/sys_admin/price_plan">Manage Price Plan</a></li>
+                        <li><a href="/sys_admin/business_group">Manage Business Group</a></li>
+                        <li><a href="/sys_admin/user_role">Manage User Role</a></li>
+                        <li><a href="/sys_admin/users">Manage Users</a></li>
+                    {% endif %}
+                </ul>
+			</li>
+            {% endif %}
 		</ul>
 	</div>
 	<!-- /.sidebar-collapse -->

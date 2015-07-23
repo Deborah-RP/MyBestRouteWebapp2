@@ -12,7 +12,10 @@
 		{% include 'option_panel.html' %}
 		{% include 'route_data_panel.html' %}
 		{% include 'map_data_filter_panel.html' %}
-	   
+        {% include 'signup_modal.html' %}
+	    {% include 'login_modal.html' %}
+        <input type="hidden" id="show_login" value="{{ show_login }}" />
+        {% include 'forgot_pass_modal.html' %}
 		<div class="row">
 			<div class="col-md-12">                
 				<div id="mapRoute" style="display: none;">
@@ -35,78 +38,145 @@
 
 
 {% block javascript_block %}
-    {% include 'xlsx_js.html' %} 
 	
-    <script>
-        var pageVar = {};
-		pageVar.plan_type = 'close';
-		
-        pageVar.dnd_id = "#fileDnD";
-        pageVar.selected_id = "#fileSelected";
-		pageVar.selected_date_id = "#dateSelected";
-        pageVar.map_btn_id = "#mapBtn";
-		
-		function init_page(){
-			//Prevent "Drop" event outside of the drop area
-			var doc = $(document);
-			
-			pageVar.dnd_obj = $(pageVar.dnd_id);
-			pageVar.file_selected = $(pageVar.selected_id);	
-			pageVar.map_btn = $(pageVar.map_btn_id);			
+<script>
+    var pageVar = {};
+    pageVar.plan_type = 'close';
+    pageVar.selected_date_id = "#dateSelected";
+    
+    function init_page() {
+        //Prevent "Drop" event outside of the drop area
+        var $doc = $(document);
+        $body = $("body");
+        $doc.on({
+            ajaxStart: function () {
+                $body.addClass("ajax_load");
+            },
+            ajaxStop: function () {
+                $body.removeClass("ajax_load");
+            },
+        });
+        
+        $dnd_obj = $("#fileDnD");
+        $file_selected = $("#fileSelected");
+        $map_btn = $("#mapBtn");
+        if (Cookies.get('login_required')){
+            Cookies.remove('login_required');
+          $("#login_modal").modal('show');   
+        }
+        
+        if (Cookies.get('access_denied')){
+            Cookies.remove('access_denied');
+            bootbox.alert("You are not allowed to access the page!");
+        }
+        
+        if (Cookies.get('verified')){
+            Cookies.remove('verified');
+            bootbox.alert("You account has been verified!");
+        }
 
-			doc.on('dragenter', handleDragenter);
-			doc.on('dragover', handleDragenter);
-			doc.on('drop', handleDragenter);
-			
-			//Register buttons with the show event
-			$("#tryBtn").on('click', {show_id : "#dndPanel"}, handleShowItem);
-			$("#setOptBtn").on('click', {show_id : "#optionPanel"}, handleShowItem);
-			
-			
-			//Register the DnD object with events
-			pageVar.dnd_obj.on('dragenter', handleDragenter);
-			
-			var obj_css_array = [{
-					obj_id: pageVar.dnd_id,
-					css_array : [{
-						name: 'border',
-						value: '8px dotted #0B85A1'
-						}
-					]
-				}
-			];			
-			pageVar.dnd_obj.on('dragover', {obj_css_array : obj_css_array}, handleDragover);
+        $("form").each(function(){
+            $(this).validator().submit(function (e) {   
+                if (e.isDefaultPrevented()) {
+                    //console.log("Validation failed!");
+                    return;
+                } else {
+                    form_async_submit($(this), e, null);
+                }
+            });
+        });
+        
+        $doc.on({
+            'dragenter dragover drop': handleDragenter,
+            'm_sheet_warning:on': function () {
+                $('#multiSheetWarning').show();
+            },
+            'm_sheet_warning:off': function () {
+                $('#multiSheetWarning').hide();
+            },
+            'read_xls:start': function (e, bar_text) {
+                $("#readData").update_progress_bar(65, bar_text,
+                    "progress-bar-warning progress-bar-striped");
+            },
+            'read_xls:stop': function (e) {
+                $("#readData").update_progress_bar(100, "Read data ",
+                    "progress-bar-info");
+            },
+            'add_xls_option': function (e, xlf_header, ignore_headers) {
+                $("#optionPanel").add_select_options(xlf_header, ignore_headers);
+            },
+            'process_dt:start': function (e, bar_text) {
+                $("#dtTableBar").update_progress_bar(65, bar_text,
+                    "progress-bar-warning progress-bar-striped");
+            },
+            'process_dt:stop': function (e, tb_data, tb_header) {
+                $("#dtTableBar").update_progress_bar(100, "Processed data ",
+                    "progress-bar-info");
+                $("#routeDataPanel").show();
+                display_dataTable('#routeTable', tb_data, tb_header);
+                $("#mapDataFilterPanel").show();
+            },
+        });
 
-			var drop_select_param = {
-				m_sheet_warning_id : "#multiSheetWarning",
-				read_bar_id : "#readData",
-				confirm_opt_id : "#confirmOpt",
-				ignore_headers : ["_date_format", "close_delivery_country"], 
-                sel_by_val: {close_delivery_country:"#close_delivery_country"},
-				dt_table_bar_id : "#dtTableBar", 
-				route_data_id : "#routeDataPanel", 
-				data_table_id : "#routeTable",
-				map_filter_panel_id : "#mapDataFilterPanel",
-				selected_date_id : pageVar.selected_date_id, 
-			};
-			pageVar.dnd_obj.on('drop', drop_select_param, handleDropSelect);	
-			pageVar.file_selected.on('change', drop_select_param, handleDropSelect);
-			
-			var map_param = {
-				selected_date_id : pageVar.selected_date_id,
-				selected_start_tm_id : "#startTmSelected",
-				selected_end_tm_id : "#endTmSelected",
-				map_panel_id : "#mapRoute",
-				map_div_id : "osmmap",
-				map_zoom_level: 12,
-				multi_route_warning_id : "#multiRoute",
-				color_legend_id : "#colorLegend",
-			};
-			
-			pageVar.map_btn.on("click", map_param, handleMap);
-		}
-		
-		window.onload = init_page;
+        //Register buttons with the show event
+        $("#tryBtn").on('click', function () {
+            $("#dndPanel").show();
+        });
+
+        $("#setOptBtn").on('click', function () {
+            $("#optionPanel").show();
+        });
+
+        //Register the DnD object with events
+
+        var drop_select_param = {
+            ignore_headers: ["_date_format", "close_delivery_country"],
+            opt_panel_id: "#optionPanel",
+            confirm_opt_id: "#confirmOpt",
+            sel_by_val: {
+                close_delivery_country: "#close_delivery_country"
+            },
+            selected_date_id: pageVar.selected_date_id,
+            confirm_callback_func: create_closed_plan_from_wb,
+        };
+       
+        
+        $dnd_obj.on({
+            'dragenter': handleDragenter,
+            'dragover': function (e) {
+                $(this).addClass('hover');
+                handleDragenter(e);
+            },
+        });
+        $dnd_obj.on('drop', drop_select_param, handleDropSelect);
+        $file_selected.on('change', drop_select_param, handleDropSelect);
+
+        var map_param = {
+            selected_date_id: pageVar.selected_date_id,
+            selected_start_tm_id: "#startTmSelected",
+            selected_end_tm_id: "#endTmSelected",
+        };
+
+        var map_opts = {
+            div_id: "osmmap",
+            //center: [1.443930, 103.785256],
+            zoom: 12,
+        };
+
+        $doc.on({
+            'display_route:start': function (e, route_plan) {
+                $("#mapRoute").show();
+                show_routes_osmap(map_opts, route_plan, "#colorLegend");
+            },
+            'm_route_warning:on': function(){
+                $("#multiRoute").show();
+            },
+        });
+
+        $map_btn.on("click", map_param, generate_route);
+    }
+
+    window.onload = init_page;
     </script>
 
 {% endblock %}

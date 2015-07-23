@@ -89,15 +89,17 @@ Location.prototype.get_loc_direction = function(pre_loc, direction_handler){
     var _this = this;
     
     _this.map_provider.get_direction(loc_array, function(result){
-        _this.direction_summary = {};
+        
         
         if (result === false){
+            _this.direction_summary = {};
             _this.direction_summary.latlngs = [];
             _this.direction_summary.total_time = 0;
             _this.direction_summary.distance = 0;
             return;
         }
         
+        _this.direction_summary = {};
         _this.direction_summary.latlngs = L.GeoJSON.coordsToLatLngs(result.paths);
         _this.direction_summary.total_time = result.total_time;
         _this.direction_summary.distance = result.distance;

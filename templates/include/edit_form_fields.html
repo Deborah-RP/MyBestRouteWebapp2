@@ -1,0 +1,93 @@
+{% for field in form.field_list %}
+    {% if (not field.edit_attr or field.edit_attr.find('excluded')==-1) %}
+	<div class="form-group">
+		{% if (not field.edit_attr or field.edit_attr.find('hidden')==-1) and field.label %}
+		<label for= "{{field.prop_name}}"
+			class="col-md-3 col-md-offset-1 control-label">
+			{{field.label}}
+		</label>
+		{% endif %}
+		
+		{% if field.input_name == 'input' %}
+			<input class="col-md-7"
+				name ="{{field.prop_name}}"
+				{% if field.value %}
+				   value="{{field.value}}"
+				{% endif %}
+				{% if field.min %}
+				   min="{{field.min}}"
+				{% endif %}
+				{% if field.max %}
+				   max="{{field.max}}"
+				{% endif %}
+				{% if field.input_type %}
+				   type="{{field.input_type}}"
+				{% endif %}
+				{%if field.place_holder %}
+					placeholder = "{{field.place_holder}}"
+				{% endif %}
+				{% if field.data_error %}
+					data-error = "{{field.data_error}}"
+				{% endif %}
+				{% if field.edit_attr %}
+					{{field.edit_attr}}
+				{% endif %}
+			>
+		{% endif %}
+		
+		{% if field.input_name == 'select' %}
+			<select name="{{field.prop_name}}">
+				 <option>Please choose the option</option>
+				{% if field.verbose_name == 'country_option'%}
+					{% include 'country_option.html' %}
+				{% elif field.verbose_name == 'timezone_option' %}
+					{% include 'timezone_option.html' %}
+				{% else %}
+					{% for choice in field.choices %}
+                        {% if choice.text %}
+                            {{ field.value }}
+                            {% if field.value and field.value == choice.text %}
+                                <option value="{{choice._entity_id }}" selected>{{ choice.text }}</option>
+                            {% else %}
+                                <option value="{{choice._entity_id }}">{{ choice.text }}</option>
+                            {% endif %}
+                        {% else %}
+                            {% if field.value and field.value == choice %}
+				                <option value="{{choice}}" selected>{{ choice }}</option>
+                            {% else %}
+                                <option value="{{choice}}">{{ choice }}</option>
+                            {% endif %}
+                        {% endif %}
+					{% endfor %}                
+				{% endif %}
+			</select>
+		{% endif %}
+		
+		{%if field.input_name == 'textarea' %}
+			<textarea class="col-md-7"
+				name="{{field.prop_name}}"
+				{% if field.value %}
+				   value="{{field.value}}"
+				{% endif %}
+					  
+				{%if field.place_holder %}
+					placeholder = "{{field.place_holder}}"
+				{% endif %}
+				{% if field.data_error %}
+					data-error = "{{field.data_error}}"
+				{% endif %}
+				{% if field.edit_attr %}
+					{{field.edit_attr}}
+				{% endif %}
+				{% if field.rows %}
+					rows = "{{field.rows}}" 
+				{% endif %}
+				></textarea>
+		{% endif %}
+		
+		
+		<div class="help-block with-errors col-md-9 col-md-offset-3"></div>
+			
+	</div>
+    {% endif %}
+{% endfor %}

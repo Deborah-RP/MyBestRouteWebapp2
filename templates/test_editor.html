@@ -1,0 +1,172 @@
+{% extends 'base_map_dataTables.html' %} 
+
+{% block page_block %}
+
+<button id='button'>Show Selected Row</button>
+<table id="example" class="display" cellspacing="0" width="100%">
+        <thead>
+            <tr>
+                <th></th>
+                <th>Name</th>
+                <th>Position</th>
+                <th>Office</th>
+                <th>Extn.</th>
+                <th>Start date</th>
+                <th>Salary</th>
+            </tr>
+        </thead>
+    </table>
+
+<div id="form-content" class="modal fade route_modal">
+    <div class="modal-content">
+    <div class="modal-header">
+        <a class="close" data-dismiss="modal">&times;</a>
+        <h3>Send me a message</h3>
+    </div>
+    <div class="modal-body">
+        
+        <form class="contact" name="contact">
+            <label class="label" for="name">Your Name</label><br>
+            <input type="text" name="name" class="input-xlarge"><br>
+            <label class="label" for="email">Your E-mail</label><br>
+            <input type="email" name="email" class="input-xlarge"><br>
+            <label class="label" for="message">Enter a Message</label><br>
+            <textarea name="message" class="input-xlarge"></textarea>
+        </form>
+    </div>
+    </div>
+    <div class="modal-footer">
+        <input class="btn btn-success" type="submit" value="Send!" id="submit">
+        <a href="#" class="btn" data-dismiss="modal">Nah.</a>
+    </div>
+</div>
+<div id="thanks"><p><a data-toggle="modal" href="#form-content" data-target="#form-content" class="btn btn-primary btn-large">Modal powers, activate!</a></p></div>
+
+<div class="modal fade" id="login">
+	<div class="modal-header">
+		<a href="#" class="btn btn-success pull-right" data-dismiss="modal">×</a>
+		<h4>Welcome to technicalkeeda.com</h4>
+	</div>
+	<div class="modal-body">
+	<form method="post" action='<?= base_url();?>/login' name="loginForm">
+		<p><input type="text" class="span3" name="email" id="email" placeholder="Enter Email" value=""></p>
+		<p><input type="password" class="span3" id="loginPassword" name="loginPassword" placeholder="Enter Password"></p>
+		<p><button type="submit" class="btn btn-success">Sign in</button> <a href="<?= base_url();?>/forgotpassword">Forgot Password</a></p>
+	</form>
+	</div>																	
+</div>
+
+<a class="btn" data-toggle="modal" href="#login" data-target="#login">Login</a>
+
+
+{% endblock %} 
+
+{% block javascript_block %}
+<script>
+
+ //var editor; // use a global for the submit and return data rendering in the examples
+
+    
+function init_page() {
+    /*print_obj($.fn.dataTable.TableTools);
+    var editor = new $.fn.dataTable.Editor( {
+        ajaxUrl: "/test/test_editor",
+        domTable: "#example",
+        fields: [ {
+                label: "First name:",
+                name: "first_name"
+            }, {
+                label: "Last name:",
+                name: "last_name"
+            }, {
+                label: "Position:",
+                name: "position"
+            }, {
+                label: "Office:",
+                name: "office"
+            }, {
+                label: "Extension:",
+                name: "extn"
+            }, {
+                label: "Start date:",
+                name: "start_date",
+                type: "date"
+            }, {
+                label: "Salary:",
+                name: "salary"
+            }
+        ]
+    } );*/
+ 
+    $.fn.dataTable.TableTools.defaults.aButtons = [ 
+        { 
+            sExtends: "text", 
+            sButtonText: "Create",
+            fnClick: function(nButton, oConfig, oFlash) {
+               $('#form-content').modal('show');
+            }
+        },
+        { sExtends: "select_single", "sButtonText": "Edit"},
+        { sExtends: "select", "sButtonText": "Delete"},
+        "select_all", "select_none", "copy", "print",
+        {
+            "sExtends":    "collection",
+            "sButtonText": "Export",
+            "aButtons":    [ "csv", "xls", "pdf",]
+        }];
+    
+    var table=$('#example').DataTable( {
+        ajax: "/test/test_editor_read",
+       
+        columns: [
+            { data: null, defaultContent: '', orderable: false },
+            { data: null, render: function ( data, type, row ) {
+                // Combine the first and last names into a single table field
+                return data.first_name+' '+data.last_name;
+            } },
+            { data: "position" },
+            { data: "office" },
+            { data: "extn" },
+            { data: "start_date" },
+            { data: "salary", render: $.fn.dataTable.render.number( ',', '.', 0, '$' ) }
+        ],
+        order: [ 1, 'asc' ],
+        dom: '<"clear">flritTp',
+        tableTools: {
+            sSwfPath: "/swf/copy_csv_xls_pdf.swf",
+            sRowSelect: "multi",
+            sRowSelector: 'td:first-child',
+        }
+    } );
+    
+    $('#example tbody').on( 'click', 'tr', function () {
+        $(this).toggleClass('selected');
+        //console.log( table.row( this ).data() );
+    } );
+    
+    $('#button').click( function () {
+        var oTT = TableTools.fnGetInstance( 'example' );
+        var aData = oTT.fnGetSelectedData();
+        print_obj( aData );
+    } );
+    
+    $("input#submit").click(function(){
+        $.ajax({
+            type: "POST",
+            url: "process.php", //process to mail
+            data: $('form.contact').serialize(),
+            success: function(msg){
+                $("#thanks").html(msg) //hide button and show thank you
+                $("#form-content").modal('hide'); //hide popup  
+            },
+            error: function(){
+                alert("failure");
+            }
+        });
+    });    
+}
+    
+    window.onload = init_page;
+
+</script>
+{% endblock %} 
