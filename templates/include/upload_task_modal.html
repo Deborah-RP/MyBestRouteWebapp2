@@ -1,0 +1,41 @@
+<div id="upload_modal" class="modal" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <a class="close" data-dismiss="modal">&times;</a>
+                <h3>Upload Task</h3>
+            </div>
+            <div class="modal-body">
+                <form method="post" action="/team_user/task" role="form" data-target='#upload_modal' class="form-horizontal well">
+                    <input type='hidden' value="{{form.upload_type}}" name='formType'> 
+                    {% for field in form.route_task_field_list %} 
+                    {% if (not field.create_attr or field.create_attr.find('excluded')==-1) %}
+                    <div class="form-group">
+                        {% if field.label %}
+                        <label for="{{field.prop_name}}" class="col-md-3 col-md-offset-1 control-label">
+                            {{field.label}}
+                            {% if (field.create_attr and field.create_attr.find('required')!=-1) %}
+                            <div class='text-danger'> * </div>
+                            {% endif%}
+
+                        </label>
+                                                    
+                        {% endif %}
+
+                        <select id="{{field.prop_name}}" name="{{field.prop_name}}" class="col-md-6 col-md-offset-1"></select>
+                    </div>
+                    {% endif %} {% endfor %}
+
+                    <div class="form-group">
+                        <input type='button' class="btn btn-lg btn-success col-md-4 col-md-offset-2" value="Upload" id="uploadBtn">
+                        <input class="btn  btn-lg btn-warning col-md-2 col-md-offset-2" type="button" value="Close" data-dismiss="modal">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <h3><p class='text-warning text-center'>{{ form.upload_task_create_warning }}</p></h3>
+            </div>
+
+        </div>
+    </div>
+</div>

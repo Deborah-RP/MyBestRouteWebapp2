@@ -88,6 +88,9 @@ tr.selected td:first-child:before {
     /* fa-check-square-o */
 }
 
+th {font-size: 18px}
+td {font-size: 16px}
+
 .load_icon {
     display:    none;
     position:   fixed;
@@ -113,4 +116,6 @@ body.ajax_load {
 body.ajax_load .load_icon {
     display: block;
 }
+
+
 

@@ -1,0 +1,5 @@
+{% for field in form.field_list %}
+    {% if (field.create_attr and field.create_attr.find('basic_tab')!=-1) %}
+        {% include 'create_form_field.html' %}
+    {% endif %}
+{% endfor %}

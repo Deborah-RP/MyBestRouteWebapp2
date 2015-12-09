@@ -9,41 +9,65 @@
             </div>
 
             <div class="modal-body">
-                <form method="post" action="/auth/signup" role="form" id="signup_form" data-target="#signup_modal" class="form-horizontal well" data-toggle="validator">
+                <form method="post" action="/auth/signup" role="form" id="signup_form" data-target="#signup_modal" class="form-horizontal" data-toggle="validator">
                     <fieldset>
-                        <div class="form-group">
-                            <label for="email" class="col-md-3 col-md-offset-1 control-label">Email</label>
-                            <input class="col-md-7" placeholder="E-mail as user id" name="email" type="email" data-error="Invalid email address" required autofocus>
-                            <div class="help-block with-errors col-md-9 col-md-offset-3">
+                        <div class = 'well'>
+                            <div class="form-group">
+                                <label for="email" class="col-md-3 col-md-offset-1 control-label">Email</label>
+                                <input class="col-md-7" placeholder="E-mail as user id" name="email" type="email" data-error="Invalid email address" required autofocus>
+                                <div class="help-block with-errors col-md-9 col-md-offset-3">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="password" class="col-md-3 col-md-offset-1 control-label">Password</label>
+                                <input class="col-md-7" placeholder="Password" id="password" name="password" type="password" data-minlength="8" data-error="Minimum of 8 characters" required>
+                                <div class="help-block with-errors col-md-9 col-md-offset-3">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="confirmedPassword" class="col-md-3 col-md-offset-1  control-label">Confirmed Password</label>
+                                <input class="col-md-7" placeholder="Confirmed Password" id="confirmedPassword" required type="password" data-match="#password" data-error="Your passwords do not match">
+                                <div class="help-block with-errors col-md-9 col-md-offset-3">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="name" class="col-md-3 col-md-offset-1  control-label">Name</label>
+                                <input class="col-md-7" placeholder="Name" name = "user_name" id="name" type="text" data-error="Please enter your name" required>
+                                <div class="help-block with-errors col-md-9 col-md-offset-3">
+                                </div>
                             </div>
                         </div>
-
-                        <div class="form-group">
-                            <label for="password" class="col-md-3 col-md-offset-1 control-label">Password</label>
-                            <input class="col-md-7" placeholder="Password" id="password" name="password" type="password" data-minlength="8" data-error="Minimum of 8 characters" required>
-                            <div class="help-block with-errors col-md-9 col-md-offset-3">
+                        <div class = 'well'>
+                            <div class="form-group">
+                                <label for="business_name" class="col-md-3 col-md-offset-1  control-label">Business Name</label>
+                                <input class="col-md-7" placeholder="Business/Company Name" name = "business_name" id="business_name" type="text" data-error="Please enter the business name" required>
+                                <div class="help-block with-errors col-md-9 col-md-offset-3">
+                                </div>
                             </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="confirmedPassword" class="col-md-3 col-md-offset-1  control-label">Confirmed Password</label>
-                            <input class="col-md-7" placeholder="Confirmed Password" id="confirmedPassword" required type="password" data-match="#password" data-error="Your passwords do not match">
-                            <div class="help-block with-errors col-md-9 col-md-offset-3">
+                            <div class="form-group">
+                                <label for="country" class="col-md-3 col-md-offset-1  control-label">Country</label>
+                                <select name='country'required>
+                                     {% include 'country_option.html' %}
+                                </select>
+                                <div class="help-block with-errors col-md-9 col-md-offset-3">
+                                </div>
+                            </div>  
+                            <div class="form-group">
+                                <label for="timezone" class="col-md-3 col-md-offset-1  control-label">Timezone</label>
+                                <select name='timezone' required>
+                                     {% include 'timezone_option.html' %}
+                                </select>
+                                <div class="help-block with-errors col-md-9 col-md-offset-3">
+                                </div>
+                            </div>                                
+                            <div class="form-group">
+                                <input class="btn btn-lg btn-success col-md-4 col-md-offset-2" type="submit" value="Submit" name="submitBtn">
+                                <input class="btn  btn-lg btn-warning col-md-2 col-md-offset-2" type="button" value="Close" data-dismiss="modal">
                             </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="name" class="col-md-3 col-md-offset-1  control-label">Name</label>
-                            <input class="col-md-7" placeholder="Name" name = "user_name" id="name" type="text" data-error="Please enter your name" required>
-                            <div class="help-block with-errors col-md-9 col-md-offset-3">
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <input class="btn btn-lg btn-success col-md-4 col-md-offset-2" type="submit" value="Submit" name="submitBtn">
-                            <input class="btn  btn-lg btn-warning col-md-2 col-md-offset-2" type="button" value="Close" data-dismiss="modal">
-                        </div>
-
+                        </div>    
 
                     </fieldset>
                 </form>

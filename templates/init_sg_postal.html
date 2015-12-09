@@ -1,0 +1,62 @@
+{% extends 'base.html' %} 
+
+{% block page_block %}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    <h2>Initialize Singapore Portal Address</h2>
+                        
+                    <div class="panel-body">
+                    This will allow the system to remove all the postal address and re-create them in search index. This will take a some time to complete. 
+                        <form method="post" action="/super_admin/init_postal" role="form" id="init_postal" data-toggle="validator" 
+                            <div class="form-group">
+                                <input class="btn btn-lg btn-success col-md-4 col-md-offset-2" type="submit" value="Submit" name="submitBtn">
+                            </div>                        
+                        </form>
+                    </div>
+                </div>
+                    <!-- /.panel-body -->                        
+            </div>
+
+            <div class="load_icon"><!-- Place at bottom of page --></div>    
+            <!-- class="panel" -->
+        </div>
+         <!--class="col-lg-12" -->
+    </div>
+    <!-- /.row -->            
+</div>
+<!--/.container-fluid-->
+{% endblock %} 
+
+{% block javascript_block %}
+<script>
+    function init_page() {
+        var $doc = $(document);
+        $body = $("body");
+        $doc.on({
+            ajaxStart: function () {
+                $body.addClass("ajax_load");
+            },
+            ajaxStop: function () {
+                $body.removeClass("ajax_load");
+            },
+        });
+
+        $("form").each(function(){
+            $(this).validator().submit(function (e) {   
+                if (e.isDefaultPrevented()) {
+                    //console.log("Validation failed!");
+                    return;
+                } else {
+                    form_async_submit($(this), e, null);
+                }
+            });
+        });
+    }
+    window.onload = init_page;
+</script>
+        
+{% endblock %} 

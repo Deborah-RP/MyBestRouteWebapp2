@@ -29,10 +29,10 @@
         </a>
 		<ul class="dropdown-menu dropdown-user">
             {% if user.user_name %}
-                <li><a href="/user/user_profile" ><i class="fa fa-user fa-fw"></i> User Profile</a></li>
-                <li><a href="/user/change_password" ><i class="fa fa-key fa-fw"></i> Change Password</a></li>
+                <li><a href="/team_user/user_profile" ><i class="fa fa-user fa-fw"></i> User Profile</a></li>
+                <li><a href="/team_user/change_password" ><i class="fa fa-key fa-fw"></i> Change Password</a></li>
                 {% if user.access_level == 1 %}
-                    <li><a href="/user/change_priceplan"><i class="fa fa-credit-card fa-fw"></i> Ugrade Price Plan</a></li>
+                    <li><a href="/team_user/change_priceplan"><i class="fa fa-credit-card fa-fw"></i> Ugrade Price Plan</a></li>
                 {% endif %}
                 <li class="divider"></li>
                 <li><a href="/auth/logout"><i class="fa fa-sign-out fa-fw"></i> Logout</a></li>

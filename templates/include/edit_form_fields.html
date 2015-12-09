@@ -1,24 +1,29 @@
 {% for field in form.field_list %}
     {% if (not field.edit_attr or field.edit_attr.find('excluded')==-1) %}
-	<div class="form-group">
-		{% if (not field.edit_attr or field.edit_attr.find('hidden')==-1) and field.label %}
+
+    {% if (field.edit_attr and field.edit_attr.find('repeated')!=-1) %}
+       <div id="repeatFieldsWrap">  
+           <input type='hidden' value='{{field.prop_name}}' id='repeatFieldName'>
+    {% else %}
+        <div class="form-group">
+    {% endif %}
+               
+		{% if (not field.edit_attr or field.edit_attr.find('hidden')==-1) and field.label and field.input_name != 'select-multiple'%}
 		<label for= "{{field.prop_name}}"
 			class="col-md-3 col-md-offset-1 control-label">
 			{{field.label}}
+            {% if (field.edit_attr and field.edit_attr.find('required')!=-1) %}
+                <div class='text-danger'> * </div>
+            {% endif %}            
 		</label>
 		{% endif %}
 		
 		{% if field.input_name == 'input' %}
 			<input class="col-md-7"
-				name ="{{field.prop_name}}"
-				{% if field.value %}
-				   value="{{field.value}}"
-				{% endif %}
-				{% if field.min %}
-				   min="{{field.min}}"
-				{% endif %}
-				{% if field.max %}
-				   max="{{field.max}}"
+				name ="{{field.prop_name}}" 
+                id ="{{field.prop_name}}" 
+				{% if field.default_value %}
+				   value="{{field.default_value}}"
 				{% endif %}
 				{% if field.input_type %}
 				   type="{{field.input_type}}"
@@ -34,10 +39,22 @@
 				{% endif %}
 			>
 		{% endif %}
-		
-		{% if field.input_name == 'select' %}
-			<select name="{{field.prop_name}}">
-				 <option>Please choose the option</option>
+               
+               
+		{% if (field.input_name == 'select' or field.input_name == 'select-multiple') %}
+            {% if field.input_name == 'select' %}
+			     <select name="{{field.prop_name}}" id="{{field.prop_name}}" class="col-md-7" 
+            {% elif field.input_name == 'select-multiple' %}
+                  <select multiple name="{{field.prop_name}}" id="{{field.prop_name}}" class="col-md-7"
+            {% endif %}               
+                {% if field.edit_attr %}
+					{{field.edit_attr}}
+				{% endif %}                    
+                >
+            {% if field.input_name == 'select' %}
+				 <option value=>Please choose the option</option>
+            {% endif %}
+               
 				{% if field.verbose_name == 'country_option'%}
 					{% include 'country_option.html' %}
 				{% elif field.verbose_name == 'timezone_option' %}
@@ -45,14 +62,13 @@
 				{% else %}
 					{% for choice in field.choices %}
                         {% if choice.text %}
-                            {{ field.value }}
-                            {% if field.value and field.value == choice.text %}
+                            {% if field.default_value and field.default_value == choice.text %}
                                 <option value="{{choice._entity_id }}" selected>{{ choice.text }}</option>
                             {% else %}
                                 <option value="{{choice._entity_id }}">{{ choice.text }}</option>
                             {% endif %}
                         {% else %}
-                            {% if field.value and field.value == choice %}
+                            {% if field.default_value and field.default_value == choice %}
 				                <option value="{{choice}}" selected>{{ choice }}</option>
                             {% else %}
                                 <option value="{{choice}}">{{ choice }}</option>
@@ -65,9 +81,10 @@
 		
 		{%if field.input_name == 'textarea' %}
 			<textarea class="col-md-7"
-				name="{{field.prop_name}}"
-				{% if field.value %}
-				   value="{{field.value}}"
+				name="{{field.prop_name}}" 
+                id="{{field.prop_name}}"
+				{% if field.default_value %}
+				   value="{{field.default_value}}"
 				{% endif %}
 					  
 				{%if field.place_holder %}
@@ -79,15 +96,30 @@
 				{% if field.edit_attr %}
 					{{field.edit_attr}}
 				{% endif %}
-				{% if field.rows %}
-					rows = "{{field.rows}}" 
-				{% endif %}
 				></textarea>
 		{% endif %}
-		
+
+        {% if (field.edit_attr and 
+               field.edit_attr.find('repeated')!=-1 and 
+               field.edit_attr.find('hidden')==-1 and
+               field.input_name != 'select-multiple' )
+           %}
+            <input class="addFieldBtn btn btn-link col-md-7 col-md-offset-4" 
+              value = "Add More {{field.label}}" >           
+        {% endif %}
 		
 		<div class="help-block with-errors col-md-9 col-md-offset-3"></div>
 			
 	</div>
+
+    {% if (field.edit_attr and 
+               field.edit_attr.find('upload_map')!=-1) 
+       %}
+
+        <div class="form-group">
+            <button  type="button" class="btn btn-lg btn-primary col-md-4 col-md-offset-1 upload_{{field.prop_name}}" >Upload {{field.label}}</button>
+            <button  type="button" class="btn btn-lg btn-primary col-md-4 col-md-offset-2 map_{{field.prop_name}}">Select {{field.label}} on Map</button>
+        </div>
+    {% endif %}
     {% endif %}
 {% endfor %}

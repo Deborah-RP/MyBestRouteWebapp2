@@ -166,20 +166,6 @@ function create_close_plan(filtered_data){
     return route_data;
 }*/
 
-function process_workbook(workbook, ignore_headers){
-    //Get the first worksheet content
-    var first_name = workbook.SheetNames[0];
-    var first_sheet = workbook.Sheets[first_name];
-    
-    //Get the header information from the firstworksheet
-    var xlf_header = get_header(first_sheet);
-
-    //Add the header to select options, skip those in the ignore list
-    $(document).trigger('add_xls_option', [xlf_header, ignore_headers])
-    var output = to_json(first_sheet);
-    return output;
-}
-
 function generate_route(e){
     ga('send', 'event', 'button', 'click', 'mapBtn');
     //Read date and time
@@ -223,15 +209,28 @@ function filter_wb_to_json(e){
     var filter = $opt_panel.get_select_text();
     var filtered_data = filter_worksheet(e.data.output, filter, e.data.sel_by_val);
     var output = JSON.stringify(filtered_data);
-    print_obj(e.data.opt_panel_id);
     $(document).trigger('process_wb:stop', [output]);
+}
+
+function process_workbook(workbook, ignore_headers){
+    //Get the first worksheet content
+    var first_name = workbook.SheetNames[0];
+    var first_sheet = workbook.Sheets[first_name];
+    
+    //Get the header information from the firstworksheet
+    var xlf_header = get_header(first_sheet);
+
+    //Add the header to select options, skip those in the ignore list
+    $(document).trigger('add_xls_option', [xlf_header, ignore_headers])
+    var output = to_json(first_sheet);
+    return output;
 }
 
 //HTML5 drag-and-drop and file select using readAsArrayBuffer
 function handleDropSelect(e) {
     var files, f;
 
-    ga('send', 'event', 'button', 'click', 'drop_select');
+    //ga('send', 'event', 'button', 'click', 'drop_select');
     $(document).trigger('m_sheet_warning:off');
 
     if (e.type === 'drop' || e.type === 'q_drop_f') {
@@ -264,7 +263,6 @@ function handleDropSelect(e) {
 
         //Read the worksheet based on the selected options
         var output = process_workbook(workbook, e.data.ignore_headers);
-
         var click_confirm_param = {
             output: output,
             opt_panel_id: e.data.opt_panel_id,
@@ -272,11 +270,11 @@ function handleDropSelect(e) {
             selected_date_id: e.data.selected_date_id,
             sel_by_val: e.data.sel_by_val,
         }
+        //Unbind the previous click handlers to ensure only
+        //one copy of data is sent
+        $(e.data.confirm_opt_id).off('click', e.data.confirm_callback_func)
         $(e.data.confirm_opt_id).click(click_confirm_param, e.data.confirm_callback_func);
-
         $(document).trigger('read_xls:stop');
-
-
         //For qunit test
         var qunit_e = $.Event('q_drop_end', {});
         $('body').trigger(qunit_e, {

@@ -36,10 +36,14 @@ handlers:
   script: handler.auth.app
   secure: always
   
-- url: /user/.*
-  script: handler.personal_user.app
+- url: /team_admin/.*
+  script: handler.team_admin.app
   secure: always  
   
+- url: /team_user/.*
+  script: handler.team_user.app
+  secure: always  
+
 - url: /group_admin/.*
   script: handler.group_admin.app
   secure: always  
@@ -58,10 +62,15 @@ handlers:
 - url: /.*
   script: handler.main.app
 
+- url: /_ah/queue/deferred
+  script: google.appengine.ext.deferred.deferred.application
+    
 libraries:
 - name: webapp2
   version: latest
   
 - name: jinja2
   version: latest
- 
+  
+builtins:
+- deferred: on

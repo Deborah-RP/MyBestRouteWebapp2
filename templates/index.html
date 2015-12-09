@@ -72,7 +72,12 @@
         
         if (Cookies.get('verified')){
             Cookies.remove('verified');
-            bootbox.alert("You account has been verified!");
+            bootbox.alert("Your account has been verified!");
+        }
+        
+        if (Cookies.get('reset_pass')){
+            Cookies.remove('reset_pass');
+            bootbox.alert("Your password has been reset!");            
         }
 
         $("form").each(function(){

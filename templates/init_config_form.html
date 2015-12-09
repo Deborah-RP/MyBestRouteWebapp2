@@ -58,6 +58,7 @@
             'read_xls:stop': function (e) {
                 $("#readData").update_progress_bar(100, "Read data ",
                     "progress-bar-info");
+                $("#upload_modal").modal('show');
             },
             'add_xls_option': function (e, xlf_header, ignore_headers) {
                 $("#upload_modal").add_select_options(xlf_header, ignore_headers);

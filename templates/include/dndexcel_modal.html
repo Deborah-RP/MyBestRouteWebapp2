@@ -1,0 +1,16 @@
+<div id="dndexcel_modal" class="modal" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <a class="close" data-dismiss="modal">&times;</a>
+            </div>
+            <div class="modal-body">
+                {% include 'dndexcel.html' %}
+            </div>
+            <div class="modal-footer">
+                <div class="help-block with-errors col-md-9 col-md-offset-3">{{ status_msg }}</div>
+            </div>
+
+        </div>
+    </div>
+</div>

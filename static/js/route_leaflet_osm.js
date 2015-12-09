@@ -32,6 +32,24 @@ var MAPGEOCODER = {
     yandex : yandexAPI
 };
 
+//Overwrite the _onMouseUp to disable the zoom function
+L.Map.BoxZoom.prototype._onMouseUp = function (e) {
+    this._finish();
+    var map = this._map,
+    layerPoint = map.mouseEventToLayerPoint(e);
+
+    if (this._startLayerPoint.equals(layerPoint)) { return; }
+    
+    var bounds = new L.LatLngBounds(
+	          map.layerPointToLatLng(this._startLayerPoint),
+	          map.layerPointToLatLng(layerPoint));
+
+    //map.fitBounds(bounds);
+    map.fire('boxzoomend', {
+			boxZoomBounds: bounds
+	});
+};
+
 function create_icon (color, number){
     //console.log("creating icon" + NUM_ICON_PATH+'/'+color+'/'+'number_'+number+'.png');
 	var icon = L.icon({
@@ -43,6 +61,26 @@ function create_icon (color, number){
     
     
 	return icon;
+}
+
+function create_task_icon (task_status){
+    var task_icon_url;
+    
+    if (task_status === true){
+        task_icon_url = "/img/selected_task.png";
+    }
+    else {
+        task_icon_url = "/img/non_selected_task.png";
+    }
+	var icon = L.icon({
+	    iconUrl:	  task_icon_url,
+	    iconSize:     [25, 25], // size of the icon
+	    iconAnchor:   [0, 0], // point of the icon which will correspond to marker's location
+	    popupAnchor:  [2, 2] // point from which the popup should open relative to the iconAnchor
+		});
+    
+	return icon;
+    
 }
 
 /*
@@ -57,10 +95,10 @@ function create_osmap(map_opts){
 	var center = map_opts.center;
 	var zoom = map_opts.zoom;
     var loc = {
-		lat: 1.443930,
-		lng: 103.785256
+		lat: 1.365629, 
+		lng: 103.810896,
 	}
-    
+
 	if (center === undefined) {
 		center = [loc.lat, loc.lng];
 	}
@@ -70,14 +108,14 @@ function create_osmap(map_opts){
     var map = L.map(div_id);
     OSM_MAP = map;
     map.on('locationerror', {map: map, center:center, zoom:zoom}, handleLocationError);
-    
-    map.locate({setView: true, maxZoom: zoom});
+    //map.locate({setView: true, maxZoom: zoom});
+    map.setView(center, zoom);
     L.tileLayer(TILE_URL_TEMPLATE,TILE_LAYER_OPTIONS).addTo(map);
     return map;
 }//End of create_osmap
 
 function handleLocationError(e){
-    console.log("not able to locate");
+    console.log("Geolocation Failed, not able to locate");
     e.data.map.setView(e.data.center, e.data.zoom);
 }
 /*

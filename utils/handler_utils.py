@@ -1,18 +1,26 @@
 from google.appengine.api import mail 
 
-def construct_return_msg(success_cnt, fail_cnt, operation, status_msg):
+def construct_return_msg(success_cnt, fail_cnt, operation, 
+                         success_message, fail_message):
     msg = ""
-    
     status = True
-    if success_cnt > 0:
-        msg = "%s %s records successfully! " %(operation, success_cnt)
+    if success_cnt >= 1:
+        if fail_cnt == 0:
+            msg = "%s (%s records)" %(success_message, success_cnt)
+        else:
+            msg = "%s %s records successfully! " %(operation, success_cnt)
+        
     if fail_cnt > 0:
-        msg += "Failed to %s %s records. %s" %(operation, fail_cnt, status_msg)
+        msg += "%s records fail, %s" %(fail_cnt, fail_message)
     
     if success_cnt == 0 and fail_cnt == 0:
-        msg = "No data to %s";
+        msg = "No data to %s" %(operation)
         status = False
-    return status, msg
+    
+    result = {}
+    result['status'] = status
+    result['message'] = msg
+    return result
 
 def user_required(handler):
     """
@@ -24,12 +32,11 @@ def user_required(handler):
         if not user:
             self.redirect("/?login=1", abort=True)
         else: 
-            if user.access_level < self.access_level:
+            if user.access_level < self.min_access_level or user.access_level > self.max_access_level:
                 self.redirect("/?access=1", abort=True)
             else:
                 return handler(self, *args, **kwargs)
     return check_login
-        
           
 def send_email(to_address, subject, msg):
     sender = "deborah.coiscm@gmail.com"

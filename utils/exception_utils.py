@@ -30,20 +30,33 @@ class ExpHandleAll(object):
                     msg = self.handle_funcs[exp_name](exp.args)
                 else:
                     msg = exp.args[0]
-                return False, msg
+                response = {}
+                response['status'] = False
+                response['message'] = msg
+                return response
         return handle_all
     
     def handleValueError(self, exp_args):
-        key, val = exp_args[0].split(":")
-        msg = "(%s is an invalid value.)" %(val)
+        
+        msg_list = exp_args[0].split(":")
+        #if the message is separated by :
+        if len(msg_list) == 2:
+            val = msg_list[1]
+        else:
+            val = msg_list[0]
+        msg = "%s is an invalid value." %(val)
         return msg
     
     def handleBadValueError(self, exp_args):
-        print (exp_args)
-        key, val = exp_args[0].split(":")
-        msg = ""
-        if "uninitialized" in key:
-            msg = "(Values for required fields are missing.)"
+        msg_list = exp_args[0].split(":")
+        #if the message is separated by :
+        if len(msg_list) == 2:
+            val = msg_list[1]
+        else:
+            val = msg_list[0]
+        msg = val
+        if "uninitialized" in msg_list[0]:
+            msg = "Values for required fields are missing."
         return msg
     
 #sample code

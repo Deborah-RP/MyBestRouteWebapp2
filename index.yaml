@@ -10,10 +10,151 @@ indexes:
 # automatically uploaded to the admin console when you next deploy
 # your application using appcfg.py.
 
+- kind: Address
+  properties:
+  - name: building
+  - name: business_group
+  - name: business_team
+  - name: cust_name
+  - name: postal
+
+- kind: Address
+  properties:
+  - name: building
+  - name: business_group
+  - name: business_team
+  - name: street
+  - name: postal
+
+- kind: Address
+  properties:
+  - name: building
+  - name: business_group
+  - name: business_team
+  - name: unit
+  - name: postal
+
+- kind: Address
+  properties:
+  - name: business_group
+  - name: business_team
+  - name: cust_name
+  - name: postal
+
+- kind: Address
+  properties:
+  - name: business_group
+  - name: business_team
+  - name: postal
+
+- kind: Address
+  properties:
+  - name: business_group
+  - name: business_team
+  - name: street
+  - name: postal
+
+- kind: Address
+  properties:
+  - name: business_group
+  - name: is_active
+  - name: postal
+
+- kind: Address
+  properties:
+  - name: business_group
+  - name: postal
+
+- kind: Area
+  properties:
+  - name: business_group
+  - name: area_name
+
+- kind: Area
+  properties:
+  - name: business_group
+  - name: business_team
+  - name: area_name
+
+- kind: Area
+  properties:
+  - name: business_group
+  - name: is_active
+  - name: area_name
+
+- kind: BusinessGroup
+  properties:
+  - name: is_active
+  - name: price_plan
+  - name: business_name
+
 - kind: BusinessGroup
   properties:
   - name: price_plan
   - name: business_name
+
+- kind: CustOrder
+  properties:
+  - name: business_group
+  - name: business_team
+  - name: order_updated
+    direction: desc
+
+- kind: CustOrder
+  properties:
+  - name: business_group
+  - name: order_updated
+    direction: desc
+
+- kind: Depot
+  properties:
+  - name: business_group
+  - name: business_team
+  - name: depot_name
+
+- kind: Depot
+  properties:
+  - name: business_group
+  - name: depot_name
+
+- kind: Depot
+  properties:
+  - name: business_group
+  - name: is_active
+  - name: depot_name
+
+- kind: DepotTemplate
+  properties:
+  - name: business_group
+  - name: business_team
+  - name: template_name
+
+- kind: DepotTemplate
+  properties:
+  - name: business_group
+  - name: template_name
+
+- kind: Driver
+  properties:
+  - name: business_group
+  - name: business_team
+  - name: driver_name
+
+- kind: Driver
+  properties:
+  - name: business_group
+  - name: driver_name
+
+- kind: DriverTemplate
+  properties:
+  - name: business_group
+  - name: business_team
+  - name: template_name
+
+- kind: DriverTemplate
+  properties:
+  - name: business_group
+  - name: template_name
 
 - kind: FormConfig
   properties:
@@ -22,13 +163,49 @@ indexes:
 
 - kind: FormField
   properties:
+  - name: is_active
+  - name: kind_name
+  - name: form_seq
+
+- kind: FormField
+  properties:
+  - name: kind_name
+  - name: form_seq
+
+- kind: FormField
+  properties:
   - name: kind_name
   - name: order
 
 - kind: PricePlan
   properties:
+  - name: plan_name
+  - name: plan_price
+
+- kind: PricePlan
+  properties:
   - name: plan_type
   - name: plan_price
+
+- kind: RoutePlan
+  properties:
+  - name: business_group
+  - name: business_team
+  - name: route_plan_updated
+    direction: desc
+
+- kind: RoutePlan
+  properties:
+  - name: business_group
+  - name: route_plan_updated
+    direction: desc
+
+- kind: Task
+  properties:
+  - name: business_group
+  - name: business_team
+  - name: task_updated
+    direction: desc
 
 - kind: User
   properties:
@@ -47,3 +224,19 @@ indexes:
   - name: business_group
   - name: user_role
   - name: email_lower
+
+- kind: VehicleType
+  properties:
+  - name: business_group
+  - name: business_team
+  - name: type_name
+
+- kind: VehicleType
+  properties:
+  - name: business_group
+  - name: type_name
+
+- kind: Vehicle_Type
+  properties:
+  - name: business_group
+  - name: type_name

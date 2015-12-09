@@ -5,9 +5,15 @@ from handler.base import BaseHandler
 
 class MainPage(BaseHandler):
     def get(self):
+        '''
+            Default index page
+            based on various re-direct params
+            set the cookie for front page to display error message
+        '''
         login_flag = self.request.get('login')
         access_flag = self.request.get('access')
         verify_flag = self.request.get('verified')
+        reset_flag = self.request.get('reset_pass')
         if login_flag:
             self.response.set_cookie("login_required", "Yes")
             self.redirect("/")
@@ -17,6 +23,9 @@ class MainPage(BaseHandler):
         elif verify_flag:
             self.response.set_cookie("verified", "Yes")
             self.redirect("/")
+        elif reset_flag:
+            self.response.set_cookie("reset_pass", "Yes")
+            self.redirect("/")            
         else:
             self.render("index.html")
             
