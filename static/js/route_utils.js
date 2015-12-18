@@ -1,6 +1,111 @@
+function init_crud_page() {
+    var $doc = $(document);
+    $body = $("body");
+    $doc.on({
+        ajaxStart: function () {
+            $body.addClass("ajax_load");
+        },
+        ajaxStop: function () {
+            $body.removeClass("ajax_load");
+        },
+    });
+    var tb_params = {};
+    tb_params.create_modal_id = "#create_modal"
+    tb_params.edit_modal_id = "#edit_modal";
+    tb_params.tb_id = "#CURDTable";
+    tb_params.ajax = $("#tb_ajax_url").val();
+    tb_params.dt_source = $("#dt_source").val();
+    tb_params.dnd_id = "#dndPanel";
+    tb_params.scrollX = true;
+    //print_obj(tb_params.ajax);
+    //tb_params.order = [ 0, 'asc' ];
+    tb_params.dom = '<"clear">flritTp';
+    tb_params.tableTools = {};
+    tb_params.tableTools.tb_buttons = $("#tb_buttons").val();
+    tb_params.tableTools.aButtons = init_tb_btn(tb_params);
+
+    init_tb_cols(tb_params)
+
+    $('#CURDTable tbody').on('click', 'tr', function () {
+        $(this).toggleClass('selected');
+        //console.log( table.row( this ).data() );
+    });
+
+    $("form").each(function(){
+        $(this).validator().submit(function (e) {   
+            if (e.isDefaultPrevented()) {
+                //console.log("Validation failed!");
+                return;
+            } else {
+                form_async_submit($(this), e, null);
+            }
+        });
+    });
+
+    var pageVar = {};
+    //Register buttons with the show event
+    $("#setOptBtn").click(function () {
+        $("#upload_modal").modal('show');
+    });
+    $dnd_obj = $("#fileDnD");
+    $file_selected = $("#fileSelected");
+        
+        
+    //Register dynamic add button event
+    $(".addFieldBtn").click(function(){
+        create_new_field($(this));
+    });
+        
+    $doc.on({
+        'dragenter dragover drop': handleDragenter,
+        'm_sheet_warning:on': function () {
+            $('#multiSheetWarning').show();
+        },
+        'm_sheet_warning:off': function () {
+            $('#multiSheetWarning').hide();
+        },
+        'read_xls:start': function (e, bar_text) {
+            $("#readData").update_progress_bar(65, bar_text,
+                "progress-bar-warning progress-bar-striped");
+        },
+        'read_xls:stop': function (e) {
+            $("#readData").update_progress_bar(100, "Read data ",
+                "progress-bar-info");
+        },
+        'add_xls_option': function (e, xlf_header, ignore_headers) {
+            $("#upload_modal").add_select_options(xlf_header, ignore_headers);
+        },
+        'process_wb:stop': function(e, upload_data){
+            $("#upload_modal").modal('hide');
+            var ajax_data = {
+                formType: 'async_upload', 
+                upload_data: upload_data,        
+            };
+            json_async_submit(tb_params, ajax_data);
+        },
+    });
+        
+    $dnd_obj.on({
+        'dragenter': handleDragenter,
+        'dragover': function (e) {
+            $(this).addClass('hover');
+            handleDragenter(e);
+        },
+    });
+    
+    $('#simulated_team').val(Cookies.get('fake_team_id'));
+
+    var drop_select_param = {
+        opt_panel_id: "#upload_modal",
+        confirm_opt_id: "#uploadBtn",
+        confirm_callback_func: filter_wb_to_json,
+    };
+    $dnd_obj.on('drop', drop_select_param, handleDropSelect);
+    $file_selected.on('change', drop_select_param, handleDropSelect);
+}
 
 //Get the object from the multilevel string key such as "prop1.prop2.prop3"
-function get_desc_obj(obj, str_keys){
+function get_desc_obj(obj, str_keys) {
     var desc_keys = str_keys.split(".");
     while (desc_keys.length && (obj = obj[desc_keys.shift()]));
     return obj;
@@ -580,4 +685,11 @@ function reset_current_form(){
     var $current_form = $current_field.parents('form');
     $current_form[0].reset();
 }
+
+function set_fake_team_cookie(){
+    var team_id = $(this).val();
+    Cookies.set('fake_team_id', team_id);
+}
+    
+
 

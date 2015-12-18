@@ -93,6 +93,26 @@ indexes:
   - name: price_plan
   - name: business_name
 
+- kind: BusinessGroup
+  properties:
+  - name: status
+  - name: tm_created
+
+- kind: BusinessGroup
+  properties:
+  - name: status
+  - name: tm_created
+    direction: desc
+  - name: price_plan
+  - name: business_name
+
+- kind: BusinessGroup
+  properties:
+  - name: tm_created
+    direction: desc
+  - name: price_plan
+  - name: business_name
+
 - kind: CustOrder
   properties:
   - name: business_group

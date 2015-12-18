@@ -11,38 +11,72 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
     </button>
+    
+    {% if user.user_name %}
+        <li><a class="navbar-brand">{{user.group_name}}[{{user.team_name}}]</a></li>
+    {% endif %}  
+    
     <!--<a class="navbar-brand" href="index.html">Route Planner Prototype</a>-->
-
 </div>
 <!-- /.navbar-header -->
-<ul class="masthead nav navbar-top-links navbar-right">
-    {% if user.user_name %}
-        <li>Welcome {{user.user_name}}</li>
+
+<div class="collapse navbar-collapse">
+    {%if (form and form.teams_in_group and user.access_level >= 100) %}
+        <form class="navbar-form navbar-nav">
+            <select id= "simulated_team" name="simulated_team" onchange="set_fake_team_cookie.call(this)">
+            <option > Simulated Team</option>
+            {% for field in form.teams_in_group %}
+                <option value ="{{field._entity_id}}"> {{field.text}}</option>
+            {% endfor %}
+            </select>
+        </form>
     {% endif %}
-    {% if user.user_name %}
-         <li><a href="/home" data-toggle="tooltip" title="Home Page"><i class="fa fa-home"></i></a></li>
+    
+    <!-- {%if (form and form.teams_in_group and user.access_level >= 100) %}
+    <ul class="nav navbar-nav">
+        <div class="dropdown">
+             <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" >
+                 Simulated Team
+            <span class="caret"></span></button>
+            <ul class="dropdown-menu">
+                {% for field in form.teams_in_group %}
+                    <li><a href ="#" class='set_fake_team' team_id="{{field._entity_id}}">{{field.text}}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    </ul>
     {% endif %}
-    <li><a href="" data-toggle="tooltip" title="Contact Us"><i class="fa fa-envelope-o"></i></a></li>
-	<li class="dropdown">
-    	<a class="dropdown-toggle" data-toggle="dropdown" href="#">
-        	<i class="fa fa-user fa-fw"></i>  <i class="fa fa-caret-down"></i>
-        </a>
-		<ul class="dropdown-menu dropdown-user">
-            {% if user.user_name %}
-                <li><a href="/team_user/user_profile" ><i class="fa fa-user fa-fw"></i> User Profile</a></li>
-                <li><a href="/team_user/change_password" ><i class="fa fa-key fa-fw"></i> Change Password</a></li>
-                {% if user.access_level == 1 %}
-                    <li><a href="/team_user/change_priceplan"><i class="fa fa-credit-card fa-fw"></i> Ugrade Price Plan</a></li>
+    -->
+    
+    <ul class="masthead nav navbar-top-links navbar-right">
+        {% if user.user_name %}
+            <li>Welcome <b>{{user.user_name}}</b> ({{user.role_name}})</li>
+        {% endif %}
+        {% if user.user_name %}
+             <li><a href="/home" data-toggle="tooltip" title="Home Page"><i class="fa fa-home"></i></a></li>
+        {% endif %}
+        <li><a href="" data-toggle="tooltip" title="Contact Us"><i class="fa fa-envelope-o"></i></a></li>
+        <li class="dropdown">
+            <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                <i class="fa fa-user fa-fw"></i>  <i class="fa fa-caret-down"></i>
+            </a>
+            <ul class="dropdown-menu dropdown-user">
+                {% if user.user_name %}
+                    <li><a href="/team_user/user_profile" ><i class="fa fa-user fa-fw"></i> User Profile</a></li>
+                    <li><a href="/team_user/change_password" ><i class="fa fa-key fa-fw"></i> Change Password</a></li>
+                    {% if user.access_level == 1 %}
+                        <li><a href="/team_user/change_priceplan"><i class="fa fa-credit-card fa-fw"></i> Ugrade Price Plan</a></li>
+                    {% endif %}
+                    <li class="divider"></li>
+                    <li><a href="/auth/logout"><i class="fa fa-sign-out fa-fw"></i> Logout</a></li>
+                {% else %}
+                    <li><a href="" data-toggle="modal" data-target="#login_modal"><i class="fa fa-sign-in fa-fw"></i> Login</a></li>
+                    <li class="divider"></li>
+                    <li><a href="" data-toggle="modal" data-target="#signup_modal"><i class="fa fa-user-plus fa-fw"></i>  Sign up</a></li>
                 {% endif %}
-                <li class="divider"></li>
-                <li><a href="/auth/logout"><i class="fa fa-sign-out fa-fw"></i> Logout</a></li>
-            {% else %}
-                <li><a href="" data-toggle="modal" data-target="#login_modal"><i class="fa fa-sign-in fa-fw"></i> Login</a></li>
-                <li class="divider"></li>
-                <li><a href="" data-toggle="modal" data-target="#signup_modal"><i class="fa fa-user-plus fa-fw"></i>  Sign up</a></li>
-            {% endif %}
-        </ul>
-     	<!-- /.dropdown-user -->
-	</li>
-<!-- /.dropdown -->
-</ul>
+            </ul>
+            <!-- /.dropdown-user -->
+        </li>
+    <!-- /.dropdown -->
+    </ul>
+</div>

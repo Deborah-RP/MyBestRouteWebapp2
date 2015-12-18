@@ -244,11 +244,9 @@ class Geocode_API:
         
         if response.status_code == 200:
             result_address = cls.get_geocode_address_outformat(response.content, address, api_provider)
-            print (result_address)
             #get a more detailed address by perform a reverse geocode
             if api_provider != 'google':
                 result_address = cls.search_reverse_geocode(result_address, "google")
-                print (result_address)
             return result_address
     
     @classmethod

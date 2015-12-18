@@ -1,0 +1,77 @@
+import webapp2
+import config
+from handler.base import CRUDHandler
+from model.account import UserRole
+
+class TeamHandler(CRUDHandler):
+    @webapp2.cached_property
+    def min_access_level(self):
+        user_role = UserRole.query(UserRole.role_name == config.TEAM_ADMIN).get()
+        return user_role.access_level
+    
+    @webapp2.cached_property
+    def business_group_id(self):
+        return self.user.business_group.get().key.id()
+    
+    @webapp2.cached_property
+    def business_team_id(self):
+        if self.user.business_team:
+            return self.user.business_team.get().key.id()
+        else:
+            return None
+    
+    def set_default_country(self, form_data):
+        field_list = form_data['field_list']
+        for each in field_list:
+            if each['prop_name'] == 'country':
+                each['default_value'] = self.user.business_team.get().country
+        return form_data
+            
+    def post(self):
+        self.request.POST['business_group'] = str(self.business_group_id)
+        self.request.POST['user_created'] = str(self.user.key.id())
+        self.request.POST['business_team'] = str(self.business_team_id)
+        if (self.business_team_id==None and self.model_cls.is_team_search==True):
+            if not self.request.POST["formType"].startswith('async_query'):
+                response = {}
+                response['status'] = True
+                response['message'] = "You need to be assigned to a team for the operation, please contact your group admin!"
+                self.async_render_msg(response)
+                return
+
+        super(TeamHandler, self).post()
+        
+    def process_upload_data(self, upload_data):
+        for each in upload_data:
+            each['business_group'] = self.user.business_group
+            each['business_team'] = self.user.business_team
+            each['user_created'] = self.user.key
+        return upload_data
+        
+    def async_query_all_json(self):
+
+        super(TeamHandler, self).async_query_all_json(user_business_group=self.user.business_group,
+                                                      user_business_team=self.user.business_team)
+
+
+class TeamTemplateHandler(TeamHandler):
+    def process_template_search(self):
+        #Get template key based on id
+        template_field_id = self.form['template_search_get_fields']
+        template_id = self.request.get(template_field_id)
+
+        if template_id:
+            result = self.model_cls.convert_keyprop_by_id(template_field_id, template_id)
+            if result['status'] == False:
+                result['ajax_search_message'] = result['message']
+                return result
+            else:
+                template_key = result['key']
+                return template_key.get().to_dict()
+        return None
+    
+    def process_upload_data(self, upload_data):
+        template_field_id = self.form['template_search_get_fields']
+        for each in upload_data:
+            each = self.set_template_value(template_field_id, each)
+        return super(TeamTemplateHandler, self).process_upload_data(self, upload_data)                 

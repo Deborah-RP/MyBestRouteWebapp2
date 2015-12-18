@@ -12,6 +12,7 @@ from config import DEBUG
 from utils.exception_utils import * 
 
 
+
 '''
 class for Price Plan
 the plan name is the id which should be unique
@@ -78,8 +79,6 @@ class BusinessGroup(BaseModel):
                                  verbose_name=','.join(config.COUNTRY_LIST))
     timezone = ndb.StringProperty(required=True, verbose_name="timezone_option")
     expiry_date = ndb.DateProperty()
-    group_created = ndb.DateTimeProperty(auto_now_add=True)
-    group_updated = ndb.DateTimeProperty(auto_now=True)
     paypal_id = ndb.StringProperty(indexed=False)    
     last_payment = ndb.DateProperty(indexed=False)
 
@@ -89,7 +88,7 @@ class BusinessGroup(BaseModel):
     @classmethod
     def prepare_query_order(cls, order_list):
         if order_list == None:
-            order_list = [cls.price_plan, cls.business_name]
+            order_list = [-cls.tm_created, cls.price_plan, cls.business_name]
         return order_list
 
     @classmethod
@@ -176,6 +175,7 @@ class User(BaseModel, webapp2_extras.appengine.auth.models.User):
                                 choices=config.ACCOUNT_STATUS, 
                                 verbose_name=','.join(config.ACCOUNT_STATUS))
     last_login_time = ndb.DateTimeProperty(indexed=False)
+    last_logout_time = ndb.DateTimeProperty(indexed=False)
     last_failed_login = ndb.DateTimeProperty(indexed=False)
     failed_login_count = ndb.IntegerProperty(indexed=False, default=0)
     last_host_address = ndb.StringProperty(indexed=False)
@@ -197,6 +197,25 @@ class User(BaseModel, webapp2_extras.appengine.auth.models.User):
     def group_status(self):
         business_group = self.business_group.get()
         return business_group.status
+    
+    @property
+    def group_name(self):
+        business_group = self.business_group.get()
+        return business_group.business_name
+    
+    @property
+    def team_name(self):
+        business_team = self.business_team
+        if business_team != None:
+            business_team = business_team.get()
+            return business_team.team_name
+        else:
+            return None
+    
+    @property
+    def role_name(self):
+        user_role = self.user_role.get()
+        return user_role.role_name
     
     @classmethod
     def prepare_query_order(cls, order_list):
@@ -303,7 +322,7 @@ class User(BaseModel, webapp2_extras.appengine.auth.models.User):
 
         user_data = cls.create_user(email_lower, None, **data)
         if not user_data[0]: 
-            response['message'] = 'Unable to create user because email already exists.'
+            response['message'] = 'Unable to create user because email already exists.' %email_lower
             response['status'] = False
             return response
         else:
@@ -340,20 +359,34 @@ class User(BaseModel, webapp2_extras.appengine.auth.models.User):
     Base model for model that handle at the group level.
     All search must limited by the group ID
 '''
+       
 class GroupModel(BaseModel):
     business_group = ndb.KeyProperty(required=True,kind=BusinessGroup, verbose_name='business_name')
     user_created = ndb.KeyProperty(required=True, kind=User, verbose_name='user_name')
+    business_team = ndb.KeyProperty(kind=BusinessTeam, verbose_name='team_name')    
     is_group_search = True
     
 class TeamModel(GroupModel):
     business_team = ndb.KeyProperty(required=True,kind=BusinessTeam, verbose_name='team_name')
     is_team_search = True
-    
 '''
     Base model for template class
 '''
 class TemplateModel(TeamModel):
     template_name = ndb.StringProperty(required=True)
     description = ndb.TextProperty()
-    
 
+class AuditLog(GroupModel):
+    email_created = ndb.StringProperty()
+    location_created = ndb.StringProperty()
+    event_desc = ndb.StringProperty()
+    model_display_name = 'audit log'
+    
+    #Group and team level search
+    is_team_search = True
+
+    @classmethod
+    def prepare_query_order(cls, order_list):
+        if order_list == None:
+            order_list = [-cls.tm_created]
+        return order_list

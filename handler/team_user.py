@@ -3,7 +3,7 @@ import webapp2
 
 from utils.handler_utils import *
 
-from handler.team import TeamHandler
+from handler.role_access import TeamHandler
 from model.account import *
 from model.plan import *
 from model.base_doc import *
@@ -12,7 +12,7 @@ import config
 class TeamUserHandler(TeamHandler):
     @webapp2.cached_property
     def min_access_level(self):
-        user_role = UserRole.query(UserRole.role_name == config.TEAM_USER).get()
+        user_role = UserRole.query(UserRole.role_name == config.TEAM_USER.role_name).get()
         return user_role.access_level
     
 class TaskHandler(TeamUserHandler):

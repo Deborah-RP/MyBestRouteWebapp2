@@ -1,3 +1,4 @@
+import os
 from google.appengine.api import mail 
 
 def construct_return_msg(success_cnt, fail_cnt, operation, 
@@ -37,30 +38,11 @@ def user_required(handler):
             else:
                 return handler(self, *args, **kwargs)
     return check_login
-          
-def send_email(to_address, subject, msg):
-    sender = "deborah.coiscm@gmail.com"
-    mail.send_mail(sender, to_address, subject, msg)
-    
-def send_verfication_email(user_name, user_email, verification_url):
-    subject = "Your account has been approved"
-    msg = ("""
-    Dear %s:
-    
-    Your account has been approved. Please click at %s to verify your email address.
 
-""" %(user_name, verification_url))
-    send_email(user_email, subject, msg)
     
-def send_reset_passwd_email(user_name, user_email, verification_url):
-    subject = "Reset Password"    
-    msg = ("""
-    Dear %s:
+def get_current_location():
+    city = os.environ.get('HTTP_X_APPENGINE_CITY', 'Unknown City').capitalize()
+    country = os.environ.get('HTTP_X_APPENGINE_COUNTRY', 'Unknown Country')
+    return "%s, %s" %(city, country)
     
-    Please click at %s to reset your password.
-
-""" %(user_name, verification_url))
-    send_email(user_email, subject, msg)
-    
-
     

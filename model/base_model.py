@@ -45,7 +45,8 @@ class BaseModel(ndb.Model):
         ** Not used at the monment
     '''
     is_active = ndb.BooleanProperty(default=True)
-    
+    tm_created = ndb.DateTimeProperty(auto_now_add=True)
+    tm_updated = ndb.DateTimeProperty(auto_now=True)   
     
     unique_or_props = []
     unique_and_props = []
@@ -81,7 +82,6 @@ class BaseModel(ndb.Model):
                         logging.info("get_cond_list: Business team is empty.")
             else:
                 logging.info("get_cond_list: Business group is empty.")
-                     
         return cond_list
 
     '''method to query model data with specified condition and order'''
@@ -91,7 +91,8 @@ class BaseModel(ndb.Model):
                     order_list=None,
                     user_business_group=None,
                     user_business_team=None):
-        
+        print cond_list
+        print cls.is_team_search
         #Check the business_group and business_team
         if ((cls.is_group_search==True and user_business_group==None) or
             (cls.is_team_search==True and user_business_team==None)):
@@ -101,15 +102,18 @@ class BaseModel(ndb.Model):
         cond_list = cls.get_cond_list(cond_list=cond_list, 
                                       user_business_group=user_business_group,
                                       user_business_team=user_business_team)
+        
+        
         if cond_list == None:
             query_result = cls.query()
         else:
             query_result = cls.query(*cond_list)
-        
+
         if order_list:
             result_list = query_result.order(*order_list).fetch()
         else:
             result_list = query_result.fetch()
+            
         return result_list
     
     '''Convert the structure property into a string'''
@@ -466,7 +470,7 @@ class BaseModel(ndb.Model):
             prop_model_cls = cls._properties[prop_name]._modelclass
             if cls._properties[prop_name]._repeated == True:
                 prop_val_list = []
-                print ('prop_val %s' %prop_val)
+                
                 for each in prop_val:
                     each = cls.init_prop_val(each)
                     if each != None:
@@ -493,7 +497,7 @@ class BaseModel(ndb.Model):
         result = {}
         result['status'] = True
         
-        #If entity use a number id, conver the string to integer
+        #If entity use a number id, convert the string to integer
         if (key_model_cls.is_number_id == True 
             and not isinstance(prop_val, (int, long))):
             if (prop_val.isdigit()):
@@ -668,12 +672,13 @@ class BaseModel(ndb.Model):
                 prop_val = cls.convert_repeat_prop(prop_name, prop_val)
                 prop_val = cls.convert_structured_prop(prop_name, prop_type, prop_val)                    
                 '''
-                If the proerty value is not None and is a key property
+                If the property value is not None and is a key property
                 In the form the value is the id of key model entity
                 The key need to be retrieved based on the id
                 '''
                 if (prop_val != None 
                     and prop_type == 'KeyProperty'):
+                    
                     '''
                         For upload action, the key property is not 
                         the id but the display value of the property
@@ -860,15 +865,20 @@ class BaseModel(ndb.Model):
         check_result['message'] = ""
         check_result['entity'] = None
         exist_entity = None
-        
         model_rec = cls.prepare_create_data(model_rec=model_rec, 
                                             unique_id=unique_id, 
                                             is_unique=is_unique,
                                             user_business_group=user_business_group,
                                             type=type,
-                                            user_business_team=user_business_team)        
+                                            user_business_team=user_business_team)
+                
+        tmp_result = cls.get_data_from_rec(model_rec, 
+                                            user_business_group=user_business_group, 
+                                            type=type,
+                                            user_business_team=user_business_team)
+        
         #check if the rec value is unique
-        check_result = cls.check_unique_value(model_rec, 
+        check_result = cls.check_unique_value(tmp_result['data'], 
                                               user_business_group=user_business_group,
                                               user_business_team=user_business_team)
         
@@ -893,6 +903,7 @@ class BaseModel(ndb.Model):
             #Replace the existing entity with the same ID
             if cls.is_replaced == True and exist_entity:
                 tmp_entity = exist_entity
+            
             result = tmp_entity.get_data_from_rec(model_rec, 
                                                   user_business_group=user_business_group, 
                                                   type=type,
@@ -979,7 +990,7 @@ class BaseModel(ndb.Model):
             model_entity.populate(**entity_data)
             model_entity.put()
             result['message'] = "The %s record is updated successfully!" %(cls.model_display_name)
-            
+            result['entity'] = model_entity
         return result
 
     '''
@@ -1020,6 +1031,7 @@ class BaseModel(ndb.Model):
             
             #The entity is key for other records, cannot delete
             if result['status'] == True:
+                result['entity'] = model_entity
                 model_entity.key.delete()
                 #Set the flag is_active to False
                 #model_entity.is_active = False

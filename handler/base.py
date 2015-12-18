@@ -13,11 +13,11 @@ from webapp2_extras import sessions
 import config
 from config import JINJA_ENV, DEBUG
 from model.base_model import FormField
-from model.account import UserRole
-
-#from utils import ga_tracking
-
+from model.account import UserRole, AuditLog
+from google.appengine.api import mail
 from utils.handler_utils import *
+
+
 
 """
 Base class for all the handlers used in the system
@@ -131,6 +131,21 @@ class BaseHandler(webapp2.RequestHandler):
         if redirect_addr:
             response['redirect'] = redirect_addr
         self.render_json(response)
+        
+    def get_domain(self):
+        return self.request.host
+    
+    def send_email(self, to_address, subject, msg):
+        sender = "admin@"+config.APP_ID+".appspotmail.com"
+        message = mail.EmailMessage(sender=sender, subject=subject)
+        
+        message.to = to_address
+        message.body = msg
+        message.bcc = config.ADMIN_ALERT_EMAIL
+        
+        logging.info('sent by %s' %(sender))
+        #mail.send_mail(sender, to_address, subject, msg)
+        message.send()    
 
 class CRUDHandler(BaseHandler):
     @user_required
@@ -166,6 +181,15 @@ class CRUDHandler(BaseHandler):
         
         #property that define the template for the form
         self.default_form = None
+        
+        
+        #property that determine if the even logged into audit
+        self.is_audit = False
+        self.audit_event_key = None
+
+        #property that define the audit action
+        self.audit_event_list= ['Create', 'Edit', 'Delete']        
+        
         #Customize page information
         self.init_form_data()
         
@@ -177,10 +201,11 @@ class CRUDHandler(BaseHandler):
         self.form['upload_type'] = 'async_upload'
 
         if self.page_name:
-            self.form['header'] = ('Manage %s' %(self.page_name)).title()
-            self.form['create_title'] = ('Create New %s' %(self.page_name)).title()
-            self.form['upload_title'] = ('Upload  %s' %(self.page_name)).title()
-            self.form['edit_title'] = ('Edit  %s' %(self.page_name)).title()
+            if 'header' not in self.form:
+                self.form['header'] = ('Manage %s' %(self.page_name)).title()
+                self.form['create_title'] = ('Create New %s' %(self.page_name)).title()
+                self.form['upload_title'] = ('Upload  %s' %(self.page_name)).title()
+                self.form['edit_title'] = ('Edit  %s' %(self.page_name)).title()
         
         if not self.form['tb_buttons']:
             self.form['tb_buttons'] = 'create,edit,delete,export,import'
@@ -188,6 +213,7 @@ class CRUDHandler(BaseHandler):
         self.form_funcs['async_create'] = self.async_create 
         self.form_funcs['async_edit'] = self.async_edit
         self.form_funcs['async_delete'] = self.async_delete
+        self.form_funcs['async_activate'] = self.async_activate
         self.form_funcs['async_upload'] = self.async_upload
         self.form_funcs['async_query_all_json'] = self.async_query_all_json
         self.form_funcs['async_query_kind'] = self.async_query_kind
@@ -197,7 +223,27 @@ class CRUDHandler(BaseHandler):
         if not self.default_form:
             self.default_form = "crud_form.html"
 
+    def create_audit_log(self, action, rec_entity):
+        if self.is_audit == True and action in self.audit_event_list:
+            if self.audit_event_key:
+                key_id = getattr(rec_entity, self.audit_event_key)
+                event_desc = "%s %s '%s'" %(action, self.page_name, key_id)
+            else:
+                event_desc = "%s %s" %(action, self.page_name)
         
+            new_log = {}
+            new_log['email_created'] = "%s (%s)" %(self.user.email_lower,
+                                                   self.user.user_role.get().role_name)
+            new_log['location_created'] = get_current_location()
+            new_log['event_desc'] = event_desc
+            new_log['business_group'] = self.user.business_group
+            new_log['user_created'] = self.user.key
+            new_log['business_team'] = self.user.business_team
+            
+            result = AuditLog.create_model_entity(model_rec=new_log, 
+                                                    user_business_group=self.user.business_group,
+                                                    user_business_team=self.user.business_team)
+            
     def init_form_data(self):
         pass
     
@@ -260,7 +306,11 @@ class CRUDHandler(BaseHandler):
                                                     user_business_group=self.user.business_group,
                                                     user_business_team=self.user.business_team)
         result = self.post_create_process(result=result, model_rec=post_dict)
-        
+        if result['status'] == True:
+            rec_entity = result['entity']
+            self.create_audit_log('Create', rec_entity)
+        else:
+            logging.error(result['message'])
         self.async_render_msg(result)
 
 
@@ -286,6 +336,12 @@ class CRUDHandler(BaseHandler):
         result = self.model_cls.update_model_entity(post_dict, 
                                                     user_business_group=self.user.business_group,
                                                     user_business_team=self.user.business_team)
+        if result['status'] == True:        
+            rec_entity = result['entity']
+            self.create_audit_log('Edit', rec_entity)
+        else:
+            logging.error(result['message'])
+        
         self.async_render_msg(result)
 
     def process_upload_data(self, upload_data):
@@ -347,9 +403,13 @@ class CRUDHandler(BaseHandler):
                 if result['status'] == True:
                     success_cnt +=1
                     success_message = result['message']
+                    rec_entity = result['entity']
+                    self.create_audit_log('Create', rec_entity)
+                    
                 else:
                     fail_cnt +=1
                     fail_message =  result['message']
+                    logging.error(result['message'])
                     
                 
         result = construct_return_msg(success_cnt, fail_cnt, "upload", success_message, fail_message);
@@ -372,15 +432,50 @@ class CRUDHandler(BaseHandler):
             if result['status'] == True:
                 success_cnt +=1
                 success_message = result['message']
+                rec_entity = result['entity']
+                self.create_audit_log('Delete', rec_entity)
             else:
                 fail_cnt +=1
                 fail_message =  result['message']
+                logging.error(result['message'])
                     
         result = construct_return_msg(success_cnt, fail_cnt, "delete", success_message, fail_message);
         self.async_render_msg(result)
             
         #status, msg = self.model_cls.del_model_entity(self.request, self.number_id)
         #self.async_render_msg(status, msg)
+        
+    def post_activate_process(self, result, model_rec):
+        return result
+        
+    def async_activate(self):
+        act_data = json.loads(self.request.get('act_data'))
+        success_cnt = 0
+        fail_cnt = 0
+        success_message = ""
+        fail_message = ""
+        result = {}
+        for each in act_data:
+            act_dict = {}
+            act_dict['_entity_id'] = each['_entity_id']
+            act_dict['status'] = config.ACTIVE_STATUS
+            result = self.model_cls.update_model_entity(act_dict, 
+                                                        user_business_group=self.user.business_group,
+                                                        user_business_team=self.user.business_team)
+            #print ("result %s" %result)
+            if result['status'] == True:
+                success_cnt +=1
+                success_message = result['message']
+                rec_entity = result['entity']
+                self.create_audit_log('Activate', rec_entity)
+                result = self.post_activate_process(result, act_dict)
+            else:
+                fail_cnt +=1
+                fail_message =  result['message']
+                logging.error(result['message'])
+                    
+        result = construct_return_msg(success_cnt, fail_cnt, "activate", success_message, fail_message);
+        self.async_render_msg(result)        
 
     def async_query_kind(self):
         kind_name = self.request.get('kind_name')
@@ -428,59 +523,3 @@ class CRUDHandler(BaseHandler):
     def process_template_search(self):
         return None
     
-class UserHandler(CRUDHandler, ):
-    def get_access_level(self, user_role_name):
-        user_role = UserRole.query(UserRole.role_name == user_role_name).get()
-        return user_role.access_level        
-    
-    #By default, it shows all users
-    def init_form_data(self):
-        self.max_user_level = self.get_access_level(config.SUPER_ADMIN)
-        self.min_user_level = self.get_access_level(config.TEAM_USER)
-        
-    def get(self):
-        self.form['field_list'] = self.model_cls.get_form_fields()
-        for field in self.form['field_list']:
-            #option for role exclude those access level higher than current user
-            if field['prop_name'] == 'user_role':
-                '''
-                if self.user.user_role.get().role_name != 'Super Admin':
-                    for choice in field['choices']:
-                        if choice['text'] == 'Super Admin':
-                            field['choices'].remove(choice)
-                '''
-                idx = 0
-                '''
-                    Remove user role which are:
-                    1. Not in the min-max range
-                    2. higher access level than the current user
-                '''
-                while idx < len(field['choices']):
-                    user_role = UserRole.get_by_id(field['choices'][idx]['_entity_id'])
-                    if (user_role.access_level > self.user.access_level 
-                        or user_role.access_level < self.min_user_level 
-                        or user_role.access_level > self.max_user_level):
-                        #remove the option by index
-                        field['choices'].pop(idx)
-                    else:
-                        idx +=1
-                    
-        self.render("crud_form.html", form=self.form)    
-        
-    def async_create(self):
-        response = self.create_new_user(config.NEW_USER_VERIFICATION)
-        self.async_render_msg(response)
-        
-    def async_edit(self):
-        self.request.POST['user_access_lpyevel'] = self.user.access_level
-        super(UserHandler, self).async_edit()
-
-    def async_query_all_json(self):
-        cond_list = [self.model_cls.access_level <= self.user.access_level]
-        super(UserHandler, self).async_query_all_json(cond_list=cond_list)
-        
-    def async_upload(self):
-        response = {}
-        response['status'] = True
-        response['message'] = "Batch upload for user account is not allowed!"
-        self.async_render_msg(response)        

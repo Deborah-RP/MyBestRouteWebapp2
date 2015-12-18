@@ -3,21 +3,17 @@ import webapp2
 import config
 from handler.base import CRUDHandler
 from handler.auth import verfication_route
-from handler.user import UserHandler
-
+from handler.role_access import UserHandler, GroupAdminHandler
 from model.account import *
+from model.plan import *
 
-
-class GroupAdminHandler(CRUDHandler):
-    @webapp2.cached_property
-    def min_access_level(self):
-        user_role = UserRole.query(UserRole.role_name == config.GROUP_ADMIN).get()
-        return user_role.access_level
-    
-    @webapp2.cached_property
-    def business_id(self):
-        return self.user.business_group.get().key.id()
-    
+class AreaHandler(GroupAdminHandler):
+    def init_form_data(self):
+        self.page_name = 'Area'
+        self.form['action'] = '/group_admin/area'
+        self.form['dt_source'] = 'Area'
+        self.model_cls = Area
+            
 class GroupAdminUserHandler(GroupAdminHandler, UserHandler):
     def init_form_data(self):
         self.page_name = 'user'
@@ -29,17 +25,17 @@ class GroupAdminUserHandler(GroupAdminHandler, UserHandler):
         self.create_exclude_list = ['email_lower', 'price_plan']
         self.edit_exclude_list = ['email_lower', 'price_plan']
         self.form['tb_buttons'] = 'create,edit,delete,export'
-        self.max_user_level = self.get_access_level(config.GROUP_ADMIN)
-        self.min_user_level = self.get_access_level(config.TEAM_USER)        
+        self.max_user_level = config.GROUP_ADMIN.access_level
+        self.min_user_level = config.TEAM_USER.access_level        
         
     def async_query_all_json(self):
         cond_list = [User.business_group == self.user.business_group]
-        super(GroupAdminUserHandler, self).async_query_all_json(cond_list=cond_list)
+        UserHandler.async_query_all_json(self, cond_list=cond_list)
         
-    def post(self):
-        self.request.POST['business_group'] = str(self.business_id)
+    '''def post(self):
+        self.request.POST['business_group'] = str(self.business_group_id)
         super(GroupAdminUserHandler, self).post()
-        
+    '''    
 class BusinessGroupHandler(GroupAdminHandler):
     def __init__(self, *arg, **kwargs):
         self.page_name = 'Group Profile'
@@ -67,10 +63,11 @@ class BusinessTeamHandler(GroupAdminHandler):
                 each['default_value'] = self.user.business_group.get().country
         return form_data
         
-    def post(self):
-        self.request.POST['business_group'] = str(self.business_id)
+    '''def post(self):
+        self.request.POST['business_group'] = str(self.business_group_id)
         self.request.POST['user_created'] = str(self.user.key.id())
         super(BusinessTeamHandler, self).post()
+    '''
         
     def process_upload_data(self, upload_data):
         for each in upload_data:
@@ -78,12 +75,10 @@ class BusinessTeamHandler(GroupAdminHandler):
             each['user_created'] = self.user.key
         return upload_data
         
-    def async_query_all_json(self):
-        super(BusinessTeamHandler, self).async_query_all_json(user_business_group=self.user.business_group)
-            
 app = webapp2.WSGIApplication([
     (r'/group_admin/business_group$', BusinessGroupHandler),
     (r'/group_admin/users$', GroupAdminUserHandler),
     (r'/group_admin/business_team$', BusinessTeamHandler),
+    (r'/group_admin/area$', AreaHandler),
     verfication_route, 
 ], config=config.WSGI_CONFIG, debug=config.DEBUG)        

@@ -13,20 +13,25 @@
                 <!-- /input-group -->
             </li>
             
-            {%if (user.access_level == 50) %}
+            {% if (user.access_level >= 50 and user.access_level <= 100) %}
+                {% if (user.access_level == 50) %}
+                    {% set user_url = '/team_admin' %}
+                {% elif user.access_level == 100 %}
+                    {% set user_url = '/group_admin' %}
+                {% endif %}
                 <li>
                     <a href="#"><i class="fa fa-map-marker fa-fw"></i> Location
                         <span class="fa arrow"></span>
                     </a>
                     <ul class="nav nav-second-level">
-                        <li><a href="/team_admin/area">Manage Area</a></li>
-                        <li><a href="/team_admin/address">Manage Customer Address</a></li>
+                        <li><a href="{{user_url}}/area">Manage Area </a></li>
+                        <li><a href="{{user_url}}/address">Manage Customer Address</a></li>
                         <li><a href="#">Depot Station
                             <span class="fa arrow"></span>
                             </a>
                             <ul class="nav nav-third-level">
-                                <li><a href="/team_admin/depot">Manage Depot</a></li>
-                                <li><a href="/team_admin/depot_template">Manage Depot Template</a></li>
+                                <li><a href="{{user_url}}/depot">Manage Depot</a></li>
+                                <li><a href="{{user_url}}/depot_template">Manage Depot Template</a></li>
                             </ul>
                         </li>
                     </ul>
@@ -40,16 +45,16 @@
                              <span class="fa arrow"></span>
                             </a>
                             <ul class="nav nav-third-level">
-                                <li><a href="/team_admin/vehicle_type">Manage Vehicle Type</a></li>
-                                <li><a href="/team_admin/vehicle_type_template">Manage Vehicle Type Template</a></li>
+                                <li><a href="{{user_url}}/vehicle_type">Manage Vehicle Type</a></li>
+                                <li><a href="{{user_url}}/vehicle_type_template">Manage Vehicle Type Template</a></li>
                             </ul>
                         </li>
                         <li><a href="#">Driver
                              <span class="fa arrow"></span>
                             </a>
                             <ul class="nav nav-third-level">
-                                <li><a href="/team_admin/driver">Manage Driver</a></li>
-                                <li><a href="/team_admin/driver_template">Manage Driver Template</a></li>
+                                <li><a href="{{user_url}}/driver">Manage Driver</a></li>
+                                <li><a href="{{user_url}}/driver_template">Manage Driver Template</a></li>
                             </ul>
                         </li>
 
@@ -79,27 +84,54 @@
                         <li><a href="/analyze_route">Analyze</a></li>
                     </ul>
                 </li>
-            {% elif user.access_level >= 100 %}
+            {% endif %}
+            {% if user.access_level >= 50 %}
                 <li>
                     <a href="index.html"><i class="fa fa-dashboard fa-fw"></i> Admin Dashboard<span class="fa arrow"></span></a>
                     <ul class="nav nav-second-level">
-                    {%if user.access_level < 500 %} 
-                                                <li>{{user.access_level}}</li>
-                        <li><a href="/group_admin/business_group">Manage Group Profile</a></li>
-                        <li><a href="/group_admin/business_team">Manage Business Team</a></li>                           <li><a href="/group_admin/users">Manage Group Users</a></li>
-                        <li><a href="/group_admin/upgrade_price_plan">Upgrade Price Plan</a></li>
-                    {% elif user.access_level >= 1000 %} 
+                    {%if user.access_level >= 1000 %} 
                         <li><a href="/super_admin/init_config_form">Initialize HTML Form</a></li>
                         <li><a href="/super_admin/config_form">HTML Form Configuration</a></li>
                         <li><a href="/super_admin/init_postal">Initialize Singapore Postal</a></li>
+                        <li class="nav-divider"></li>
                         <li><a href="/super_admin/user_role">Manage User Role</a></li>        
                         <li><a href="/super_admin/users">Manage Users</a></li>
-                    {% else %}
+                        <li class="nav-divider"></li>
+                    {% endif %}
+                        
+                    {%if user.access_level >= 500 %} 
                         <li><a href="/sys_admin/price_plan">Manage Price Plan</a></li>
-                        <li><a href="/sys_admin/business_group">Manage Business Group</a></li>
+                         <li><a href="#">Business Group
+                             <span class="fa arrow"></span>
+                            </a>
+                            <ul class="nav nav-third-level">
+                                <li><a href="/sys_admin/activate_group">Activate Business Group</a></li>
+                                <li><a href="/sys_admin/business_group">Manage Business Group</a></li>
+                             </ul>
+                            <li>
+                        <li class="nav-divider"></li>
+                    {% endif %}
+                        
+                    {%if user.access_level == 500 %}     
                         <li><a href="/sys_admin/users">Manage Users</a></li>
+                        <li class="nav-divider"></li>
+                    {% endif %}
+                        
+                    {%if user.access_level == 100 %}     
+                        <li><a href="/group_admin/business_team">Manage Business Team</a></li>
+                        <li><a href="/group_admin/users">Manage Group Users</a></li>
+                        <li><a href="/group_admin/business_group">Manage Group Profile</a></li>
+                    {% endif %}
+                        
+                    {%if user.access_level == 50 %}
+                        <li><a href="/team_admin/users">Manage Team Users</a></li>
                     {% endif %}
                     </ul>
+                </li>
+                <li>
+                    {%if user.access_level >= 500 %} 
+                        <a href="/sys_admin/audit_log"><i class="fa fa-history fa-fw"></i> Audit Log</a>
+                    {% endif %}
                 </li>
             {% endif %}
         </ul>

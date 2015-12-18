@@ -3,7 +3,7 @@ import webapp2
 
 from utils.handler_utils import *
 
-from handler.team import TeamHandler, TeamTemplateHandler
+from handler.role_access import TeamHandler, TeamTemplateHandler
 from model.account import *
 from model.plan import *
 from model.base_doc import *

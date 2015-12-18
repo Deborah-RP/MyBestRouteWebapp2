@@ -12,6 +12,20 @@ from webapp2_extras.auth import InvalidAuthIdError, InvalidPasswordError
 
 
 class AuthHandler(BaseHandler):
+    def send_verfication_email(self, user_name, user_email, verification_url):
+        subject = "Your account has been approved"
+        msg = ("""
+        Dear %s:
+        
+        Your account has been approved. 
+        
+        You can now visit %s to verify your account and sign in to access the website.
+        
+        The Route Planner Team
+    
+    """ %(user_name, verification_url))
+        self.send_email(user_email, subject, msg)
+    
     def create_new_user(self, v_type):
         response = {}
         
@@ -20,9 +34,9 @@ class AuthHandler(BaseHandler):
             self.request.POST['user_access_level'] = self.user.access_level
         else:
             self.request.POST['user_access_level'] = UserRole.query(
-                UserRole.role_name == config.DEFAULT_USER_ROLE).get().access_level
+                UserRole.role_name == config.DEFAULT_USER_ROLE.role_name).get().access_level
         
-        #Create a new user    
+        #Create a new user
         response = self.model_cls.create_model_entity(self.request.POST)
         
         if response['status'] == True:
@@ -36,11 +50,9 @@ class AuthHandler(BaseHandler):
             verification_url = self.uri_for('user_verification', type=v_type, user_id=user_id, signup_token=token, _full=True)
             
             #Send verification email
-            send_verfication_email(user.user_name, user.email, verification_url)
+            self.send_verfication_email(user.user_name, user.email, verification_url)
             
-            if DEBUG:
-                logging.info("verification_url : %s" %verification_url)
-            
+            logging.info("verification_url for %s : %s" %(user.user_name, verification_url))
             
             #vp is user created by admin, v is a new user sighup
             if v_type == config.NEW_USER_VERIFICATION:
@@ -50,7 +62,7 @@ class AuthHandler(BaseHandler):
                 msg = 'A verification email has been sent to the your account!'
             
             response['message'] = msg
-        
+            response['entity'] = user 
         return response            
 
 class LoginHandler(BaseHandler):
@@ -59,7 +71,7 @@ class LoginHandler(BaseHandler):
         password = self.request.get('password')
         response = {}
         try:
-            user = self.auth.get_user_by_password(email_lower, password, remember=True, save_session=True)
+            user = self.auth.get_user_by_password(email_lower, password, remember=False, save_session=True)
             if (not self.user.verified):
                 self.auth.unset_session()
                 response['status'] = False
@@ -89,31 +101,44 @@ class LoginHandler(BaseHandler):
             response['message'] = "Login successfully!"
             self.async_render_msg(response, config.USER_HOME_PAGE)            
         except (InvalidAuthIdError, InvalidPasswordError) as e:
-            if DEBUG:
-                logging.info('Login failed for %s because of %s', email_lower, type(e))
+            logging.info('Login failed for %s because of %s', email_lower, type(e))
+            
             response['status'] = False
             response['message'] = "Login failed due to invalid email or password!"
             
             user = self.user_model.get_by_auth_id(email_lower)
             if user:
+                
                 user.last_failed_login = datetime.now()
-                user.failed_login_count +=1
+                user.failed_login_count += 1
                 user.last_host_address = self.request.remote_addr
+                
                 if user.failed_login_count > 20:
                     user.status = config.FAILED_LOGIN_LOCKED_STATUS
                     response['message'] = "Account is locked due to too many failed login attempts!"
-                    user.put() 
                     delay = user.failed_login_count/3
                     time.sleep(delay)
-                    
+                user.put()    
             self.async_render_msg(response)
             
 class LogoutHandler(BaseHandler):
     def get(self):
+        self.user.last_logout_time = datetime.now()
+        self.user.put()
         self.auth.unset_session()
         self.redirect('/')
         
 class ForgotPasswordHandler(BaseHandler):
+    def send_reset_passwd_email(self, user_name, user_email, verification_url):
+        subject = "Reset Password"    
+        msg = ("""
+        Dear %s:
+        
+        Please click at %s to reset your password.
+    
+    """ %(user_name, verification_url))
+        self.send_email(user_email, subject, msg)    
+    
     def post(self):
         email_lower = self.request.get('email').lower()
         user = self.user_model.get_by_auth_id(email_lower)
@@ -140,7 +165,7 @@ class ForgotPasswordHandler(BaseHandler):
                                         user_id=user_id, signup_token=token, _full=True)
         if DEBUG:
             logging.info("Forgot password verification_url : %s" %verification_url)
-        send_reset_passwd_email(user.user_name, user.email, verification_url)
+        self.send_reset_passwd_email(user.user_name, user.email, verification_url)
         response['status'] = True    
         response['message'] = 'An email to reset password has been sent to your account.'
         self.async_render_msg(response)
@@ -174,7 +199,7 @@ class SignupHandler(AuthHandler):
             self.request.POST['business_group'] = business_group.id()
         
         #Default sign up user role is "Group Admin"
-        user_role = UserRole.query(UserRole.role_name == config.DEFAULT_USER_ROLE).get()
+        user_role = UserRole.query(UserRole.role_name == config.DEFAULT_USER_ROLE.role_name).get()
         if not user_role:
             response = {}
             response['status'] = False

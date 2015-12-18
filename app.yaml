@@ -23,9 +23,9 @@ handlers:
 - url: /img
   static_dir: static/images
   
-- url: /(.*\.(gif|png|jpg|ico|js|css|xml|txt))$
+- url: /(.*\.(gif|png|jpg|ico|js|css|xml|txt|xlsx))$
   static_files: \1
-  upload: (.*\.(gif|png|jpg|ico|js|css|xml|txt))
+  upload: (.*\.(gif|png|jpg|ico|js|css|xml|txt|xlsx))
   
 - url: /admin/.*
   script: google.appengine.ext.admin.application
@@ -61,6 +61,7 @@ handlers:
 
 - url: /.*
   script: handler.main.app
+  secure: always  
 
 - url: /_ah/queue/deferred
   script: google.appengine.ext.deferred.deferred.application

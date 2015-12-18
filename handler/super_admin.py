@@ -6,22 +6,14 @@ from google.appengine.api import urlfetch
 #from google.appengine.api import taskqueue
 from google.appengine.ext import deferred
 
-import config
-from handler.base import CRUDHandler
-from handler.user import UserHandler
-from handler.auth import verfication_route
-from config import DEBUG
-from model.base_model import FormField
-from model.account import *
-from model.plan import *
-from model.base_doc import *
-from utils.handler_utils import *
 
-class SuperAdminHandler(CRUDHandler):
-    @webapp2.cached_property
-    def min_access_level(self):
-        user_role = UserRole.query(UserRole.role_name == config.SUPER_ADMIN).get()
-        return user_role.access_level
+import config
+from handler.auth import verfication_route
+from handler.role_access import UserHandler, SuperAdminHandler
+from model.base_model import FormField
+from model.base_doc import SGAdressDocument
+from model.account import UserRole, User, AuditLog
+from model.plan import Address
 
 class InitConfigFormHandler(SuperAdminHandler):
     def init_form_data(self):
@@ -37,7 +29,7 @@ class ConfigFormHandler(SuperAdminHandler):
         #self.form['header'] = 'HTML Form Configuration'
         self.form['action'] = '/super_admin/config_form'
         self.form['dt_source'] = 'FormField'
-        self.model_cls = FormField  
+        self.model_cls = FormField
         
 class InitPostalSearch(SuperAdminHandler):
     def init_form_data(self):
@@ -68,14 +60,18 @@ class InitPostalSearch(SuperAdminHandler):
                     deferred.defer(SGAdressDocument.build_doc_batch, chunk)
 
             else:
-                logging.info("File %d not found" % i)
+                logging.critical("File %d not found" % i)
                 
 class UserRoleHandler(SuperAdminHandler):
     def init_form_data(self):
         self.page_name = 'user role'
+        self.is_audit = True
+        self.audit_event_key = 'role_name'
         self.form['action'] = '/super_admin/user_role'
         self.form['dt_source'] = 'UserRole'
-        self.model_cls = UserRole 
+        self.model_cls = UserRole
+        self.is_audit = True
+        self.audit_event_key = 'role_name' 
         self.form['tb_buttons'] = 'create,edit,delete,export'
     
     def async_query_all_json(self):
@@ -106,17 +102,21 @@ class SuperAdminUserHandler(SuperAdminHandler, UserHandler):
         self.form['dt_source'] = 'User'
         self.model_cls = User
         self.form['tb_buttons'] = 'create,edit,delete,export'
-        self.max_user_level = self.get_access_level(config.SUPER_ADMIN)
-        self.min_user_level = self.get_access_level(config.SYS_ADMIN)
+        self.max_user_level = config.SUPER_ADMIN.access_level
+        self.min_user_level = config.GROUP_ADMIN.access_level
+        self.is_audit = True
+        self.audit_event_key = 'email_lower'
         self.create_exclude_list = ['business_team']
         self.edit_exclude_list = ['business_team']
         self.form_exclude_list = ['business_team']
-                      
+        
+                    
 app = webapp2.WSGIApplication([
     (r'/super_admin/init_config_form$', InitConfigFormHandler),
     (r'/super_admin/config_form$', ConfigFormHandler),
     (r'/super_admin/init_postal$', InitPostalSearch),
     (r'/super_admin/user_role$', UserRoleHandler),
-    (r'/super_admin/users$', SuperAdminUserHandler),                  
+    (r'/super_admin/users$', SuperAdminUserHandler), 
+              
    verfication_route,
 ], config=config.WSGI_CONFIG, debug=config.DEBUG)

@@ -208,6 +208,25 @@ function del_tb_rows(tb_params){
     json_async_submit(tb_params, ajax_data);
 }
 
+
+//Submit the activate data to the 
+function activate_tb_rows(tb_params){
+    
+    var table = $(tb_params.tb_id).DataTable();
+    var rows = table.rows('.selected').data();
+    var act_data = []
+    for (var idx = 0; idx < rows.length; idx++){
+        act_data.push(rows[idx]);   
+    }
+    
+    var ajax_data = {
+        formType: 'async_activate', 
+        act_data: JSON.stringify(act_data),        
+    }
+    json_async_submit(tb_params, ajax_data);
+}
+
+
 //Just the delete the data from the datatable without sending to server
 function del_selected_row(tb_id){
     var table = $(tb_id).DataTable();
@@ -288,6 +307,27 @@ function init_tb_btn(tb_params){
             };        
         a_btns.push(del_btn);   
     }
+    
+    if ($.inArray('activate', btn_list) != -1){
+        var act_btn = { 
+            sExtends: "select", 
+            sButtonText: "Activate",
+            fnClick: function(nButton, oConfig, oFlash) {
+
+                    var tb_id = '#'+this.s.dt.sInstance;
+                    var table = $(tb_id).DataTable();
+                    var cur_tb_params = table.context[0].oInit.tb_params
+
+                    bootbox.confirm("Are you sure?", function(result){
+                        if (result)
+                            activate_tb_rows(cur_tb_params);
+                        else
+                            return;
+                    });
+                },
+            };        
+        a_btns.push(act_btn);   
+    }    
     
     var filter_btn = {
         sExtends: "text",
