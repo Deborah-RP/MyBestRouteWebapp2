@@ -60,9 +60,9 @@ class Address(TeamModel):
     @classmethod
     def retrieve_existing_address(cls, 
                                   model_rec,
-                                  user_business_group,
-                                  user_business_team):
-        cond_list = []
+                                  cond_list,
+                                  cur_user):
+        
         for prop_name in cls.unique_and_props:
             prop_val = model_rec.get(prop_name)
             prop_val = cls.init_prop_val(prop_val)
@@ -75,10 +75,10 @@ class Address(TeamModel):
             
         if DEBUG:
            logging.info('cond_list:%s' %(cond_list))
+        
            
         return cls.query_data_to_dict(cond_list=cond_list, 
-                               user_business_group=user_business_group, 
-                               user_business_team=user_business_team)         
+                                      cur_user=cur_user)         
     
     @classmethod
     def create_from_sgpostal(cls, postal, business_group, user_created, business_team):
@@ -115,14 +115,17 @@ class Address(TeamModel):
         check_existing_key = []
         
         new_check_key = {}
+        '''
         new_check_key['model_display_name'] = 'depot station'
         new_check_key['model_cls'] = Depot
         new_check_key['other_prop'] = Depot.postal
         check_existing_key.append(new_check_key)
+        '''
         
         new_check_key['model_display_name'] = 'Task'
         new_check_key['model_cls'] = Task
         new_check_key['other_prop'] = Task.postal
+        
         return check_existing_key
     
 class DepotTemplate(TemplateModel):
@@ -141,9 +144,22 @@ class DepotTemplate(TemplateModel):
 
 class Depot(TeamModel):
     depot_name = ndb.StringProperty(required=True)
-    postal=ndb.KeyProperty(required=True, kind=Address, verbose_name='postal')
+    country = ndb.StringProperty(required=True,
+                                 choices = config.COUNTRY_LIST, 
+                                 verbose_name=','.join(config.COUNTRY_LIST))    
+    postal = ndb.StringProperty()
+    latlng = ndb.GeoPtProperty()
+    unit = ndb.StringProperty()
+    building = ndb.StringProperty()
+    street = ndb.StringProperty()
+    city = ndb.StringProperty()
+    state = ndb.StringProperty()
+    area = ndb.KeyProperty(kind=Area, verbose_name='area_name')
+    formatted_address = ndb.StringProperty()
+
     loading_duration = ndb.IntegerProperty(default=0)
     unloading_duration = ndb.IntegerProperty(default=0)
+    
     depot_template = ndb.KeyProperty(kind=DepotTemplate, verbose_name='template_name')
     model_display_name = 'depot station'
     #and hidden check is the group
@@ -156,12 +172,29 @@ class Depot(TeamModel):
         return order_list
     
     @classmethod
-    def prepare_create_data(cls, model_rec, 
+    def prepare_check_key(cls):
+        check_existing_key = []
+        
+        new_check_key = {}
+        
+        new_check_key['model_display_name'] = 'driver'
+        new_check_key['model_cls'] = Driver
+        new_check_key['other_prop'] = Driver.start_address
+        check_existing_key.append(new_check_key)
+        
+        new_check_key['model_display_name'] = 'driver'
+        new_check_key['model_cls'] = Driver
+        new_check_key['other_prop'] = Driver.end_address
+        check_existing_key.append(new_check_key)
+        return check_existing_key    
+    
+    '''@classmethod
+    def prepare_create_data(cls, 
+                            model_rec, 
                             unique_id=None, 
                             is_unique=True, 
-                            user_business_group=None, 
                             type=None,
-                            user_business_team=None):
+                            cur_user=None):
         
         
         #postal is the text value, need to convert to id
@@ -169,32 +202,34 @@ class Depot(TeamModel):
             postal = model_rec.get('postal')
             result = cls.convert_keyprop_by_value('postal', 
                                                   postal, 
-                                                  user_business_group=user_business_group,
-                                                  user_business_team=user_business_team)
+                                                  mode_rec=model_rec,
+                                                  cur_user=cur_user)
             if result['status'] == True:
                 address_id = result['key'].id()
                 model_rec['postal'] = address_id
 
         return model_rec
+    '''
     
+    '''
     @classmethod
     def prepare_update_data(cls, model_rec, 
                             unique_id=None, 
                             is_unique=True, 
-                            user_business_group=None, 
-                            user_business_team=None):
+                            cur_user=None):
         
         #postal is the text value, need to convert to id
         postal = model_rec.get('postal')
         result = cls.convert_keyprop_by_value('postal', 
                                                 postal, 
-                                                user_business_group=user_business_group,
-                                                user_business_team=user_business_team)
+                                                model_rec=model_rec,
+                                                cur_user=cur_user)
         if result['status'] == True:
             address_id = result['key'].id()
             model_rec['postal'] = address_id
 
         return model_rec
+    '''
 
 class Capacity(BaseModel):
     unit = ndb.StringProperty(required=True)
@@ -213,7 +248,7 @@ class Capacity(BaseModel):
         return capacity
     
     @classmethod
-    def struct_prop_to_str(cls, prop_val):
+    def _struct_prop_to_str(cls, prop_val):
         prop_str = ""
         idx = 0
         while idx < len(prop_val):
@@ -245,7 +280,6 @@ class VehicleType(TeamModel):
     oil_cost_per_km = ndb.FloatProperty()
     fixed_cost = ndb.FloatProperty()
     model_display_name = 'vehicle type'
-    #and hidden check is the group
     unique_and_props = ['type_name']
     
     @classmethod
@@ -256,7 +290,6 @@ class VehicleType(TeamModel):
     
     @classmethod
     def prepare_check_key(cls):
-        
         check_existing_key = []
         new_check_key = {}
         new_check_key['model_display_name'] = 'driver'
@@ -269,8 +302,8 @@ class VehicleType(TeamModel):
 class DriverTemplate(TemplateModel):
     vehicle_info = ndb.StringProperty()
     served_area = ndb.KeyProperty(kind=Area, verbose_name='area_name')
-    start_address = ndb.KeyProperty(kind=Address, verbose_name='postal')
-    end_address = ndb.KeyProperty(kind=Address, verbose_name='postal')
+    start_address = ndb.KeyProperty(kind=Depot, verbose_name='depot_name')
+    end_address = ndb.KeyProperty(kind=Depot, verbose_name='depot_name')
     speed_factor = ndb.FloatProperty()
     work_start_time = ndb.TimeProperty()
     work_end_time = ndb.TimeProperty()
@@ -284,7 +317,6 @@ class DriverTemplate(TemplateModel):
 
     
     model_display_name = 'driver template'
-    #and hidden check is the group
     unique_and_props = ['template_name']
     
     @classmethod
@@ -301,8 +333,8 @@ class Driver(TeamModel):
     driver_template = ndb.KeyProperty(kind=DriverTemplate, verbose_name='template_name')
     vehicle_info = ndb.StringProperty()
     served_area = ndb.KeyProperty(kind=Area, verbose_name='area_name')
-    start_address = ndb.KeyProperty(kind=Address, verbose_name='postal')
-    end_address = ndb.KeyProperty(kind=Address, verbose_name='postal')
+    start_address = ndb.KeyProperty(kind=Depot, verbose_name='depot_name')
+    end_address = ndb.KeyProperty(kind=Depot, verbose_name='depot_name')
     speed_factor = ndb.FloatProperty()
     work_start_time = ndb.TimeProperty()
     work_end_time = ndb.TimeProperty()
@@ -363,15 +395,13 @@ class Task(TeamModel):
     def create_model_entity(cls, model_rec, 
         unique_id=None, 
         is_unique=True, 
-        user_business_group=None, 
         type=None, 
-        user_business_team=None):
+        cur_user=None):
         return super(Task, cls).create_model_entity(model_rec, 
                                                     unique_id=unique_id, 
                                                     is_unique=False, 
-                                                    user_business_group=user_business_group, 
                                                     type=type, 
-                                                    user_business_team=user_business_team)
+                                                    cur_user=cur_user)
     
 class RoutePlan(TeamModel):
     route_plan_name = ndb.StringProperty(required=True)

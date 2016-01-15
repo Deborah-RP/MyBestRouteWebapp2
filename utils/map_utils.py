@@ -3,6 +3,7 @@ import logging
 import datetime
 import config
 import urllib
+import string
 
 from google.appengine.api import urlfetch
 from google.appengine.ext import ndb
@@ -80,7 +81,7 @@ class Geocode_API:
         address_name = ['building', 'street', 'city', 'state', 'postal', 'country']
         valid_address = ""
         for each in address_name:
-            if (address[each] != ""):
+            if (address[each] and address[each] != ""):
                 if (len(valid_address) > 0):
                     valid_address += "+"+address[each]
                 else:
@@ -184,7 +185,7 @@ class Geocode_API:
             elif 'country' in each['types']:
                 address['country'] = each['long_name']
             elif 'postal_code' in each['types']:
-                address['postal_code'] = each['long_name']
+                address['postal'] = each['long_name']
         return address     
     
     @classmethod
@@ -244,9 +245,9 @@ class Geocode_API:
         
         if response.status_code == 200:
             result_address = cls.get_geocode_address_outformat(response.content, address, api_provider)
-            #get a more detailed address by perform a reverse geocode
+            #get a more detailed address
             if api_provider != 'google':
-                result_address = cls.search_reverse_geocode(result_address, "google")
+                result_address = cls.search_address_details(result_address, api_provider)
             return result_address
     
     @classmethod
@@ -259,31 +260,57 @@ class Geocode_API:
                        "&key=%s"
                        ) %(latlng, google_key)
             return geo_url
+        
+    @classmethod
+    def get_address_details_url(cls, address, api_provider):
+        if api_provider == "onemap":
+            address_val = cls._onemap_address_informat(address)
+            onemap_token = OneMapToken.get_onemap_token()
+            addr_url = ("http://www.onemap.sg/API/services.svc/basicSearch"
+                          "?token=%s&searchVal=%s&returnGeom=0&rset=1&getAddrDetl=Y"
+                          ) %(onemap_token,address_val)
+            return addr_url          
 
     #same format as the geocode service
     @classmethod
-    def _google_geocode_address_outformat(cls, response_data, address):
+    def _google_reverse_geocode_address_outformat(cls, response_data, address):
         address = cls._google_gecode_address_outformat(response_data, address)
         return address
 
     @classmethod
-    def get_reverse_geocode_address_outformat(cls, response_data, address, api_provider):
-        if api_provider == "google":
-            address = cls._google_gecode_address_outformat(response_data, address)
+    def get_address_details_outformat(cls, response_data, address, api_provider):
+        if api_provider == "onemap":
+            address = cls._onemap_address_details_outformat(response_data, address)
         return address
     
     @classmethod
-    def search_reverse_geocode(cls, address, api_provider):
-        if 'lat' in address and 'lng' in address:
-            geo_url = cls.get_reverse_geo_url(address, api_provider)
+    def _onemap_address_details_outformat(cls, response_data, address):
+        response_data = json.loads(response_data)
+        if len(response_data['SearchResults']) >= 2:
+            search_result = response_data['SearchResults'][1]
+            address['postal'] = search_result['PostalCode']
+            address_list = search_result['HBRN'].split(" ", 1)
+            address['building'] = string.capwords(address_list[0], " ")
+            address['street'] = string.capwords(address_list[1], " ")
+            address['formatted_address']= "%s %s, Singapore %s" %(address['building'],
+                                                                  address['street'],
+                                                                  address['postal'])
+            if 'doc_id' not in address:
+                address['doc_id'] = "Singapore+%s" %address['postal']
+            #logging.info(address)
+        return address      
+    
+    @classmethod
+    def search_address_details(cls, address, api_provider):
+        addr_url = cls.get_address_details_url(address, api_provider)
+        if DEBUG:
+            logging.info("address url : %s" %addr_url)
+        if addr_url:
+            response = urlfetch.fetch(addr_url)
             if DEBUG:
-                logging.info("geocode url : %s" %geo_url)
-            if geo_url:
-                response = urlfetch.fetch(geo_url)
-                if DEBUG:
-                    logging.info('Response for reverse geocode service: %s' %response.content)
+                logging.info('Response for address details service: %s' %response.content)
                 
             if response.status_code == 200:
-                address = cls.get_reverse_geocode_address_outformat(response.content, address, api_provider)
+                address = cls.get_address_details_outformat(response.content, address, api_provider)
         
         return address

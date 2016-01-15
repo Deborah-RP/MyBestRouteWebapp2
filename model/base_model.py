@@ -1,10 +1,11 @@
 import logging
+import config
 from datetime import datetime, tzinfo, timedelta
 
 from google.appengine.ext import ndb
 from google.appengine.ext.ndb import metadata
 from utils.exception_utils import ExpHandleAll
-from config import DEBUG
+from config import DEBUG, GROUP_UNIQUE
 
 #class of timezone, inherit abstract class tzinfo
 class UserTimeZone(tzinfo):
@@ -22,7 +23,7 @@ class UserTimeZone(tzinfo):
         return timedelta(0)
 
 #Return the ndb kind based on the given name (string)
-def get_kind_by_name(kind_name):
+def _get_kind_by_name(kind_name):
     kind_map = ndb.Model._kind_map
     model_cls = kind_map[kind_name]
     return model_cls
@@ -31,8 +32,8 @@ def get_kind_by_name(kind_name):
     Return kind name and property name or KeyProperty
     The property name is stored in the verbose_name attribute
 '''
-def get_keyprop_attr(key_prop):
-    model_cls = get_kind_by_name(key_prop._kind)
+def _get_keyprop_attr(key_prop):
+    model_cls = _get_kind_by_name(key_prop._kind)
     prop_name = key_prop._verbose_name
     return model_cls, prop_name
 
@@ -52,8 +53,11 @@ class BaseModel(ndb.Model):
     unique_and_props = []
     is_number_id = True
     model_display_name = ""
+    unique_level = config.SYSTEM_UNIQUE.unique_level
+    '''
     is_group_search = False
     is_team_search = False
+    '''
     is_replaced = False
     
     '''
@@ -61,6 +65,8 @@ class BaseModel(ndb.Model):
         based on the is_group_search value 
         to decide if the search should be within 
         the user group
+    '''
+    
     '''
     @classmethod
     def get_cond_list(cls, 
@@ -83,46 +89,52 @@ class BaseModel(ndb.Model):
             else:
                 logging.info("get_cond_list: Business group is empty.")
         return cond_list
+    '''
+    
+
 
     '''method to query model data with specified condition and order'''
     @classmethod
-    def model_query(cls, 
+    def _model_query(cls,
+                    cur_user=None, 
                     cond_list=None, 
-                    order_list=None,
-                    user_business_group=None,
-                    user_business_team=None):
-        print cond_list
-        print cls.is_team_search
+                    order_list=None):
         #Check the business_group and business_team
+        '''
         if ((cls.is_group_search==True and user_business_group==None) or
             (cls.is_team_search==True and user_business_team==None)):
             return None
+        '''
         
         #Decide if the search need to include the group condition
+        '''
         cond_list = cls.get_cond_list(cond_list=cond_list, 
                                       user_business_group=user_business_group,
                                       user_business_team=user_business_team)
         
-        
+        '''
+
         if cond_list == None:
             query_result = cls.query()
         else:
             query_result = cls.query(*cond_list)
-
+        
         if order_list:
             result_list = query_result.order(*order_list).fetch()
         else:
             result_list = query_result.fetch()
-            
+  
         return result_list
     
     '''Convert the structure property into a string'''
     @classmethod
-    def struct_prop_to_str(cls, prop_val):
+    def _struct_prop_to_str(cls, prop_val):
         return prop_val
     
-    
-    def get_keyprop_display_value(self, key_val, key_prop_name):
+    '''Get the display value of the key property
+        Usually use for frontend UI
+    '''
+    def _get_keyprop_display_value(self, key_val, key_prop_name):
             key_entity = key_val.get()
             #get the display value of the KeyProperty
             if key_entity:
@@ -135,10 +147,9 @@ class BaseModel(ndb.Model):
     for special handling of properties such as 
     KeyProperty and DateTimeProperty
     '''
-    def to_dict(self, 
-                is_with_entity_id=True, 
-                user_business_group=None,
-                user_business_team=None):
+    def to_dict(self,
+                cur_user, 
+                is_with_entity_id=True): 
         key_dict = {}
         dt_list = []
         dt_ajust_list = []
@@ -171,11 +182,11 @@ class BaseModel(ndb.Model):
                 if isinstance(key_val, list):
                     key_val_list = []
                     for each_key_val in key_val:
-                        each_key_val = self.get_keyprop_display_value(each_key_val, key_prop_name)
+                        each_key_val = self._get_keyprop_display_value(each_key_val, key_prop_name)
                         key_val_list.append(each_key_val)
                     tmp_obj[prop_name] = key_val_list
                 else: 
-                    tmp_obj[prop_name] = self.get_keyprop_display_value(key_val, key_prop_name)
+                    tmp_obj[prop_name] = self._get_keyprop_display_value(key_val, key_prop_name)
         
         #for the StructuredProperty
         for prop_name in struct_list:
@@ -183,7 +194,7 @@ class BaseModel(ndb.Model):
                 struct_obj = getattr(self, prop_name)
                 prop_model_cls = self._properties[prop_name]._modelclass
                 #print prop_model_cls
-                tmp_obj[prop_name] = prop_model_cls.struct_prop_to_str(struct_obj)
+                tmp_obj[prop_name] = prop_model_cls._struct_prop_to_str(struct_obj)
         
         #for date and time property
         for prop_name in dt_list:
@@ -201,6 +212,8 @@ class BaseModel(ndb.Model):
                 UTC = UserTimeZone(offset=0)
                 
                 #if user team/group is not available, assume the default timezone (+8)
+                user_business_team = cur_user.business_team
+                user_business_group = cur_user.business_group
                 if user_business_team != None:
                     tz_offset = int(user_business_team.get().timezone)
                     user_tz = UserTimeZone(offset=tz_offset)
@@ -239,64 +252,84 @@ class BaseModel(ndb.Model):
     
     '''method to query data and convert to dictionary'''
     @classmethod
-    def query_data_to_dict(cls, 
+    def query_data_to_dict(cls,
+                           cur_user, 
                            cond_list=None, 
                            order_list=None, 
-                           is_with_entity_id=True,
-                           user_business_group=None,
-                           user_business_team=None):
+                           is_with_entity_id=True):
         
         order_list = cls.prepare_query_order(order_list)
         cond_list = cls.prepare_query_cond(cond_list)
         
-        result_list = cls.model_query(cond_list=cond_list, 
-                                      order_list=order_list,
-                                      user_business_group=user_business_group,
-                                      user_business_team=user_business_team)
+        result_list = cls._model_query(cur_user=cur_user, 
+                                       cond_list=cond_list, 
+                                       order_list=order_list)
         
+
         tmp_list = []
         if result_list != None:
             for each in result_list:
                 tmp_obj = each.to_dict(is_with_entity_id=is_with_entity_id, 
-                                       user_business_group=user_business_group,
-                                       user_business_team=user_business_team)
+                                       cur_user=cur_user)
                 tmp_list.append(tmp_obj)
         return tmp_list
     
     @classmethod
-    def get_unique_and_query(cls, 
+    def _get_unique_and_query(cls, 
                              model_rec, 
-                             user_business_group=None,
-                             user_business_team=None):
+                             cur_user,
+                             type=None):
         and_query = None
+   
+        '''tmp_result = cls.get_data_from_rec(model_rec=model_rec, 
+                                           cur_user=cur_user,
+                                           type=type)
+        print tmp_result
+
+        if tmp_result['status'] != True:
+            logging.error('get_unique_and_query: %s' %tmp_result['message'])
+        else:
+            tmp_result = tmp_result['data']
+        '''
+        
         #check the unique_and_props first
         if len(cls.unique_and_props) > 0:
-            
             #limit the check within the group
-            if cls.is_group_search:
-                if user_business_group:
-                    and_query = cls.query(cls.business_group == user_business_group)
-                elif DEBUG:
-                    logging.info('get_unique_and_query: Business group is empty.')
-                    
-                if cls.is_team_search:
-                    if user_business_team:
-                        and_query = and_query.filter(cls.business_team == user_business_team)
-                    elif DEBUG:
-                        logging.info('get_unique_and_query: Business team is empty.')
-            else:            
-                and_query = cls.query()
+            and_query = cls.query()
+            if cls.unique_level >= config.GROUP_UNIQUE.unique_level:
+                if 'business_group' not in cls.unique_and_props:
+                    result=cls._convert_key_data_to_prop('business_group', 
+                                                        model_rec=model_rec, 
+                                                        cur_user=cur_user, 
+                                                        type=type)
+                    if result['status'] == False:
+                        logging.error(result['message'])
+                    else:
+                        user_business_group = result['key']
+                        and_query=and_query.filter(cls.business_group==user_business_group)
+                          
+            if cls.unique_level >= config.TEAM_UNIQUE.unique_level:
+                if 'business_team' not in cls.unique_and_props:
+                    result=cls._convert_key_data_to_prop('business_team', 
+                                                        model_rec=model_rec, 
+                                                        cur_user=cur_user, 
+                                                        type=type)
+                    if result['status'] == False:
+                        logging.error(result['message'])
+                    else:
+                        user_business_team = result['key']
+                        and_query=and_query.filter(cls.business_team==user_business_team)
                 
             for prop_name in cls.unique_and_props:
                     prop_val = model_rec.get(prop_name)
-                    prop_val = cls.init_prop_val(prop_val)
+                    #prop_val = cls.init_prop_val(prop_val)
                     #get the model property based on its name(string) 
                     model_prop = cls._properties[prop_name]
                     #filter result with the condition
                     and_query = and_query.filter(model_prop==prop_val)
                     #if DEBUG:
                         #logging.info('prop:%s query:%s' %(prop_name, and_query.fetch()))
-                    
+         
         return and_query        
     
     '''
@@ -305,22 +338,23 @@ class BaseModel(ndb.Model):
         return value: result (dictionary)
                   - status: bool True is unqiue, False is not unique
                   - message: detail information about the check
-                  - query_result: the query_result from the check
+                  - entity: the entity from the query result
     '''
    
     @classmethod
     def check_unique_value(cls, 
                            model_rec, 
-                           user_business_group=None,
-                           user_business_team=None):
+                           cur_user, 
+                           type=None): 
         result = {}
         result['status'] = True
         result['message'] = ""
         result['entity'] = None
         
-        and_query = cls.get_unique_and_query(model_rec, 
-                                             user_business_group=user_business_group,
-                                             user_business_team=user_business_team)
+        and_query = cls._get_unique_and_query(model_rec=model_rec, 
+                                             cur_user=cur_user,
+                                             type=type)
+                                             
         if and_query:
             query_result = and_query.fetch()
         else:
@@ -337,9 +371,10 @@ class BaseModel(ndb.Model):
         #check entity with or condition
         if (len(cls.unique_or_props)):
             for prop_name in cls.unique_or_props:
-                prop_value = model_rec.get(prop_name)
+                prop_val = model_rec.get(prop_name)
+                prop_val = cls.init_prop_val(prop_val)
                 model_prop = cls._properties[prop_name]
-                query_result = cls.query(model_prop==prop_value).fetch()
+                query_result = cls.query(model_prop==prop_val).fetch()
                 
                 if query_result:
                     msg = prop_name
@@ -371,7 +406,7 @@ class BaseModel(ndb.Model):
         Convert the string based on the type
     '''
     @staticmethod
-    def convert_number_prop(prop_type, prop_val):
+    def _convert_number_prop(prop_type, prop_val):
         num_convert_list = {
             'IntegerProperty':int, 
             'FloatProperty':float,
@@ -388,7 +423,7 @@ class BaseModel(ndb.Model):
         Covert the string to the datetime value
     '''
     @staticmethod
-    def convert_datetime_prop(prop_type, prop_val):
+    def _convert_datetime_prop(prop_type, prop_val):
         dt_convert_list = {
             'DateProperty': '%Y-%m-%d',
             'DateTimeProperty': '%Y-%m-%d %H:%M:%S',
@@ -418,7 +453,7 @@ class BaseModel(ndb.Model):
         Convert the stirng into the geopt value
     '''
     @staticmethod
-    def convert_geopt_prop(prop_type, prop_val):
+    def _convert_geopt_prop(prop_type, prop_val):
         if (prop_type == 'GeoPtProperty'):
             if prop_val != None:
                 prop_val = ndb.GeoPt(prop_val)
@@ -430,7 +465,7 @@ class BaseModel(ndb.Model):
         The string value should be separated by ','
     '''
     @classmethod
-    def convert_repeat_prop(cls, prop_name, prop_val):
+    def _convert_repeat_prop(cls, prop_name, prop_val):
         if cls._properties[prop_name]._repeated == True:
             #print "converting repeat prop(%s) with %s" %(prop_name, prop_val)
             if prop_val == None:
@@ -461,7 +496,7 @@ class BaseModel(ndb.Model):
         return prop_val
     
     @classmethod
-    def convert_structured_prop(cls, 
+    def _convert_structured_prop(cls, 
                                prop_name, 
                                prop_type, 
                                prop_val):
@@ -491,7 +526,7 @@ class BaseModel(ndb.Model):
                               prop_name, 
                               prop_val):
         #Get the KeyProperty model class and the property that represent the display value
-        key_model_cls, key_prop_name = get_keyprop_attr(cls._properties[prop_name])
+        key_model_cls, key_prop_name = _get_keyprop_attr(cls._properties[prop_name])
         key_model_prop = key_model_cls._properties[key_prop_name]
         key_entity = None
         result = {}
@@ -521,7 +556,7 @@ class BaseModel(ndb.Model):
         return result 
     
     @classmethod
-    def convert_keyprop_list_by_id(cls, 
+    def _convert_keyprop_list_by_id(cls, 
                               prop_name, 
                               prop_val):
         key_list = []
@@ -540,34 +575,60 @@ class BaseModel(ndb.Model):
     '''
         Get the true value for a key property
         In the form the value is the display value of the keyproperty
-        This will happen of uploading data
+        This will happen when uploading data
     '''
     @classmethod    
     def convert_keyprop_by_value(cls, 
                               prop_name, 
                               prop_val,
-                              user_business_group=None,
-                              user_business_team=None):
+                              model_rec,
+                              cur_user):
         #Get the KeyProperty model class and the property that represent the display value
-        key_model_cls, key_prop_name = get_keyprop_attr(cls._properties[prop_name])
+        key_model_cls, key_prop_name = _get_keyprop_attr(cls._properties[prop_name])
         key_model_prop = key_model_cls._properties[key_prop_name]
-        key_entity = None
         result = {}
         result['status'] = True
-        if key_model_cls.is_group_search and user_business_group == None:
-            result['status'] = False
-            result['message'] = 'group id is missing'
-            return result
-        elif key_model_cls.is_team_search and user_business_team == None:
-            result['status'] = False
-            result['message'] = 'team id is missing'
-            return result
-        else:
-            cond_list = [key_model_prop==prop_val]
+        user_business_group = None
+        user_business_team = None
+        
+        logging.info(model_rec)
+        tmp_result = cls._convert_key_data_to_prop('business_group', 
+                                                   model_rec=model_rec, 
+                                                   cur_user=cur_user, 
+                                                   type=type)
+        
+        if tmp_result['status'] == True:
+            user_business_group = tmp_result['key']   
             
-        query_result = key_model_cls.model_query(cond_list=cond_list, 
-                                                 user_business_group=user_business_group,
-                                                 user_business_team=user_business_team)
+        tmp_result = cls._convert_key_data_to_prop('business_team', 
+                                                   model_rec=model_rec, 
+                                                   cur_user=cur_user, 
+                                                   type=type)
+        if tmp_result['status'] == True:
+            user_business_team = tmp_result['key']   
+            
+
+        cond_list = []
+        if key_model_cls.unique_level >= config.GROUP_UNIQUE.unique_level:
+            if user_business_group == None:
+                result['status'] = False
+                result['message'] = 'group id is missing'
+                return result
+            else:
+                cond_list.append(key_model_cls.business_group==user_business_group)
+        
+        if key_model_cls.unique_level >= config.TEAM_UNIQUE.unique_level:
+            if user_business_team == None:
+                result['status'] = False
+                result['message'] = 'team id is missing'
+                return result
+            else:
+                cond_list.append(key_model_cls.business_team==user_business_team)
+        
+        cond_list.append(key_model_prop==prop_val)
+            
+        query_result = key_model_cls._model_query(cond_list=cond_list, 
+                                                 cur_user=cur_user)
         
         if (len(query_result) > 1):
             result['status'] = False
@@ -577,21 +638,23 @@ class BaseModel(ndb.Model):
             result['message'] = '%s does not exist!' %prop_name
         else:
             result['key'] = query_result[0].key
-        return result          
+        return result
+              
     @classmethod
-    def convert_keyprop_list_by_value(cls, 
+    def _convert_keyprop_list_by_value(cls, 
                               prop_name, 
                               prop_val,
-                              user_business_group=None,
-                              user_business_team=None):
+                              model_rec,
+                              cur_user):
         key_list = []
         result = {}
-        result['status'] = True        
-        for each_id in prop_val:
+        result['status'] = True
+                
+        for each_val in prop_val:
             result = cls.convert_keyprop_by_value(prop_name, 
-                                                  each_id,
-                                                  user_business_group=user_business_group,
-                                                  user_business_team=user_business_team)
+                                                  each_val,
+                                                  model_rec=model_rec,
+                                                  cur_user=cur_user)
             if result['status'] == True:
                 key_list.append(result['key'])
             else:
@@ -601,13 +664,13 @@ class BaseModel(ndb.Model):
         return result    
 
     @classmethod
-    def convert_key_prop(cls, 
+    def _convert_key_prop(cls, 
                          prop_name,
                          prop_type, 
                          prop_val, 
-                         user_business_group=None, 
-                         type=None,
-                         user_business_team=None):
+                         model_rec,
+                         cur_user,
+                         type=None):
         '''
             For upload action, the key property is not 
             the id but the display value of the property
@@ -625,22 +688,56 @@ class BaseModel(ndb.Model):
             is_list = isinstance(prop_val,list)
             if type == 'upload':
                 if is_list:
-                    result = cls.convert_keyprop_list_by_value(prop_name, 
+                    result = cls._convert_keyprop_list_by_value(prop_name, 
                                                                prop_val, 
-                                                               user_business_group=user_business_group,
-                                                               user_business_team=user_business_team)
+                                                               model_rec=model_rec,
+                                                               cur_user=cur_user)
                 else:
                     result = cls.convert_keyprop_by_value(prop_name, 
-                                                      prop_val, 
-                                                      user_business_group=user_business_group,
-                                                      user_business_team=user_business_team)
+                                                      prop_val,
+                                                      model_rec=model_rec,
+                                                      cur_user=cur_user)
             else:
                 if is_list:
-                    result = cls.convert_keyprop_list_by_id(prop_name, prop_val)
+                    result = cls._convert_keyprop_list_by_id(prop_name, prop_val)
                 else:
                     result = cls.convert_keyprop_by_id(prop_name, prop_val)
         return result
             
+    @classmethod
+    def _convert_key_data_to_prop(cls,
+                              prop_name,
+                              model_rec,
+                              cur_user,
+                              type):
+    
+        prop_val = model_rec.get(prop_name)
+        prop_type = cls._properties[prop_name].__class__.__name__
+        prop_val = cls.init_prop_val(prop_val)
+        prop_val = cls._convert_number_prop(prop_type, prop_val)
+        prop_val = cls._convert_repeat_prop(prop_name, prop_val)
+        prop_val = cls._convert_structured_prop(prop_name, prop_type, prop_val)                    
+        
+        '''
+            If the property value is not None and is a key property
+            In the form the value is the id of key model entity
+            The key need to be retrieved based on the id
+        '''
+        if (prop_val != None 
+            and prop_type == 'KeyProperty'):
+                    
+            '''
+            For upload action, the key property is not 
+            the id but the display value of the property
+            '''
+            result = cls._convert_key_prop(prop_name, 
+                                           prop_type, 
+                                           prop_val, 
+                                           type=type,
+                                           model_rec=model_rec,
+                                           cur_user=cur_user)
+ 
+            return result
     '''
         Method to retrieve data based on the model definition
         the return data is dictionary in which
@@ -649,9 +746,8 @@ class BaseModel(ndb.Model):
     @classmethod
     def get_data_from_rec(cls, 
                           model_rec, 
-                          user_business_group=None,
                           type=None,
-                          user_business_team=None):
+                          cur_user=None):
         result = {}
         result['status'] = True
         result['message'] = ''
@@ -664,13 +760,12 @@ class BaseModel(ndb.Model):
                 #Get the property value and type
                 prop_val = model_rec.get(prop_name)
                 prop_type = cls._properties[prop_name].__class__.__name__
-                
                 prop_val = cls.init_prop_val(prop_val)
-                prop_val = cls.convert_number_prop(prop_type, prop_val)
-                prop_val = cls.convert_datetime_prop(prop_type, prop_val)
-                prop_val = cls.convert_geopt_prop(prop_type, prop_val)
-                prop_val = cls.convert_repeat_prop(prop_name, prop_val)
-                prop_val = cls.convert_structured_prop(prop_name, prop_type, prop_val)                    
+                prop_val = cls._convert_number_prop(prop_type, prop_val)
+                prop_val = cls._convert_datetime_prop(prop_type, prop_val)
+                prop_val = cls._convert_geopt_prop(prop_type, prop_val)
+                prop_val = cls._convert_repeat_prop(prop_name, prop_val)
+                prop_val = cls._convert_structured_prop(prop_name, prop_type, prop_val)                    
                 '''
                 If the property value is not None and is a key property
                 In the form the value is the id of key model entity
@@ -683,12 +778,12 @@ class BaseModel(ndb.Model):
                         For upload action, the key property is not 
                         the id but the display value of the property
                     '''
-                    result = cls.convert_key_prop(prop_name, 
+                    result = cls._convert_key_prop(prop_name, 
                                                   prop_type, 
                                                   prop_val, 
-                                                  user_business_group=user_business_group, 
                                                   type=type,
-                                                  user_business_team=user_business_team)
+                                                  model_rec=model_rec,
+                                                  cur_user=cur_user)
  
                     if result['status'] == False:
                         return result
@@ -707,7 +802,7 @@ class BaseModel(ndb.Model):
         usually used before deleting an entity
         the entity can only be deleted when is false.
     '''
-    def is_key_for(self, check_existing_key=None):
+    def _is_key_for(self, check_existing_key=None):
         result = {}
         result['status'] = True
         
@@ -754,11 +849,11 @@ class BaseModel(ndb.Model):
     def get_form_fields(cls, 
                         include_list=None, 
                         exclude_list=None,
-                        user_business_group=None,
-                        user_business_team=None):
+                        cur_user=None):
         
         #Get form definition for the model
-        field_list = FormField.query_kind_dict(cls.__name__)
+        field_list = FormField.query_kind_dict(kind_name=cls.__name__, 
+                                               cur_user=cur_user)
         #print field_list
         result_list = []
 
@@ -805,28 +900,47 @@ class BaseModel(ndb.Model):
                     #print field['choices']
                 
                 if prop_type == 'KeyProperty':
-                    key_model_cls, key_prop_name = get_keyprop_attr(cls._properties[prop_name]) 
+                    key_model_cls, key_prop_name = _get_keyprop_attr(cls._properties[prop_name]) 
                     field['choices'] = key_model_cls.get_prop_id_list(key_prop_name, 
-                                                                      user_business_group=user_business_group,
-                                                                      user_business_team=user_business_team)
+                                                                      cur_user=cur_user)
+                                                                      
                 
                 if cls._properties[prop_name]._verbose_name:
                     field['verbose_name'] = cls._properties[prop_name]._verbose_name
             
             result_list.append(field)
                     
-        if DEBUG:
-            logging.info("The field list is %s" %field_list)
         return result_list
     
     #Query the key property represent value and corresponding entity id
     @classmethod
     def get_prop_id_list(cls, prop_name, 
-                         user_business_group=None,
-                         user_business_team=None):
+                         cur_user=None):
         
-        query_list = cls.query_data_to_dict(user_business_group=user_business_group,
-                                            user_business_team=user_business_team)
+        cond_list = []
+        if cls.unique_level >= config.GROUP_UNIQUE.unique_level:
+            if cur_user.business_group == None:
+                msg = 'group id is missing'
+                logging.error('get_prop_id_list: %s' %msg)
+            else:
+                cond_list.append(cls.business_group==cur_user.business_group)
+        
+        if cls.unique_level >= config.TEAM_UNIQUE.unique_level:
+            if cur_user.business_team == None:
+                if hasattr(cur_user, "fake_business_team"):
+                    fake_business_team = getattr(cur_user, "fake_business_team")
+                    cond_list.append(cls.business_team==fake_business_team)
+                else:
+                    msg = 'team id is missing'
+                    logging.error('get_prop_id_list: %s' %msg)
+            else:
+                cond_list.append(cls.business_team==cur_user.business_team)
+
+        query_list = cls.query_data_to_dict(cur_user=cur_user,
+                                            cond_list=cond_list)
+        
+        print cls.__name__
+        print cond_list
         result_list = []
         for each in query_list:
             tmp_obj = {}
@@ -843,18 +957,17 @@ class BaseModel(ndb.Model):
     def prepare_create_data(cls, model_rec,                             
                             unique_id=None, 
                             is_unique=True,
-                            user_business_group=None,
                             type=None,
-                            user_business_team=None):
+                            cur_user=None):
         return model_rec
         
     @classmethod
+    @ExpHandleAll()        
     def create_model_entity(cls, model_rec, 
                             unique_id=None, 
                             is_unique=True,
-                            user_business_group=None,
                             type=None,
-                            user_business_team=None):
+                            cur_user=None):
         
         #print ("model_rec:%s" %model_rec)
         if (unique_id == None) and (cls.is_number_id == True):
@@ -868,19 +981,14 @@ class BaseModel(ndb.Model):
         model_rec = cls.prepare_create_data(model_rec=model_rec, 
                                             unique_id=unique_id, 
                                             is_unique=is_unique,
-                                            user_business_group=user_business_group,
                                             type=type,
-                                            user_business_team=user_business_team)
+                                            cur_user=cur_user)
                 
-        tmp_result = cls.get_data_from_rec(model_rec, 
-                                            user_business_group=user_business_group, 
-                                            type=type,
-                                            user_business_team=user_business_team)
-        
         #check if the rec value is unique
-        check_result = cls.check_unique_value(tmp_result['data'], 
-                                              user_business_group=user_business_group,
-                                              user_business_team=user_business_team)
+        check_result = cls.check_unique_value(model_rec=model_rec, 
+                                              cur_user=cur_user,
+                                              type=type)
+        
         
         if is_unique == True:
             if check_result['status'] != True:
@@ -891,7 +999,7 @@ class BaseModel(ndb.Model):
                 check_result['status'] = True
                 exist_entity = check_result['entity']
                 
-        #chcek if the id is unique
+        #check if the id is unique
         tmp_entity = cls.get_by_id(unique_id)
         if tmp_entity:
             check_result['status'] = False
@@ -904,10 +1012,9 @@ class BaseModel(ndb.Model):
             if cls.is_replaced == True and exist_entity:
                 tmp_entity = exist_entity
             
-            result = tmp_entity.get_data_from_rec(model_rec, 
-                                                  user_business_group=user_business_group, 
+            result = tmp_entity.get_data_from_rec(model_rec=model_rec, 
                                                   type=type,
-                                                  user_business_team=user_business_team)
+                                                  cur_user=cur_user)
             #check if there is error when getting the data
             if result['status'] != True:
                 check_result['status'] = False
@@ -919,14 +1026,14 @@ class BaseModel(ndb.Model):
                 check_result['message'] = "The %s record is created successfully!" %(cls.model_display_name)
                 check_result['entity'] = tmp_entity
                 
+                
         return check_result            
 
     @classmethod
     def prepare_update_data(cls, model_rec,                             
                             unique_id=None, 
                             is_unique=True,
-                            user_business_group=None,
-                            user_business_team=None):
+                            cur_user=None):
         return model_rec
         
     @classmethod
@@ -935,8 +1042,7 @@ class BaseModel(ndb.Model):
                             unique_id=None, 
                             is_unique=True, 
                             id_name=None, 
-                            user_business_group=None,
-                            user_business_team=None):
+                            cur_user=None):
         result = {}
         result['status'] = True
         result['message'] = ""
@@ -944,8 +1050,7 @@ class BaseModel(ndb.Model):
         model_rec = cls.prepare_update_data(model_rec=model_rec, 
                                             unique_id=unique_id, 
                                             is_unique=is_unique,
-                                            user_business_group=user_business_group,
-                                            user_business_team=user_business_team)               
+                                            cur_user=cur_user)               
         
         #if unique_id is not defined, get it from the record
         if unique_id == None:
@@ -969,8 +1074,7 @@ class BaseModel(ndb.Model):
         #check if the rec value is unique
         elif is_unique == True:
             check_result = cls.check_unique_value(model_rec, 
-                                                  user_business_group=user_business_group,
-                                                  user_business_team=user_business_team)
+                                                  cur_user=cur_user)
             if check_result['status'] != True:
                 tmp_entity = check_result['entity']
                 if tmp_entity.key != model_entity.key:
@@ -979,8 +1083,7 @@ class BaseModel(ndb.Model):
                     return result
             
         result = model_entity.get_data_from_rec(model_rec, 
-                                                user_business_group=user_business_group,
-                                                user_business_team=user_business_team)
+                                                cur_user=cur_user)
         #check if there is error when getting the data
         if result['status'] != True:
             result['message'] = 'Cannot update %s because %s' %(cls.model_display_name, result['message'])
@@ -1027,7 +1130,7 @@ class BaseModel(ndb.Model):
             result['message'] = "Delete failed, the record does not exist!" 
             return result
         else:
-            result = model_entity.is_key_for(check_existing_key)
+            result = model_entity._is_key_for(check_existing_key)
             
             #The entity is key for other records, cannot delete
             if result['status'] == True:
@@ -1062,11 +1165,14 @@ class FormField(BaseModel):
     is_number_id = False
     
     @classmethod
-    def query_kind_dict(cls, kind_name):
+    def query_kind_dict(cls, kind_name, cur_user):
         cond_list = [cls.kind_name==kind_name]
         order_list = [cls.form_seq]
         is_with_entity_id = False
-        result_list = cls.query_data_to_dict(cond_list, order_list, is_with_entity_id, None)
+        result_list = cls.query_data_to_dict(cond_list=cond_list, 
+                                             order_list=order_list, 
+                                             is_with_entity_id=is_with_entity_id, 
+                                             cur_user=cur_user)
         return result_list    
     
     @classmethod
@@ -1076,9 +1182,9 @@ class FormField(BaseModel):
         return order_list
         
     @classmethod
+    @ExpHandleAll() 
     def create_model_entity(cls, model_rec, 
-                            user_business_group=None,
                             type=None,
-                            user_business_team=None):
+                            cur_user=None):
         unique_id = model_rec.get('kind_name')+"."+model_rec.get('prop_name')
         return super(FormField, cls).create_model_entity(model_rec=model_rec, unique_id=unique_id)

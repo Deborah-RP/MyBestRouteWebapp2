@@ -32,7 +32,7 @@ class GroupUserHandler(CRUDHandler):
         return upload_data
         
     def async_query_all_json(self):
-        super(GroupUserHandler, self).async_query_all_json(user_business_group=self.user.business_group)
+        super(GroupUserHandler, self).async_query_all_json(cur_user=self.user)
     
 class GroupTemplateHandler(GroupUserHandler):
     def process_template_search(self):
@@ -74,7 +74,8 @@ class AddressHandler(GroupUserHandler):
         self.model_cls = Address
     
     def process_ajax_search(self):
-        check_result = self.model_cls.check_unique_value(self.request, self.user.business_group)
+        check_result = self.model_cls.check_unique_value(model_rec=self.request, 
+                                                         user=self.user)
         if check_result['status'] != True:
             record = {}
             record['ajax_search_message'] = 'Postal address already added in the group, please edit the record instead!'
@@ -113,7 +114,8 @@ class DepotHandler(GroupTemplateHandler):
         self.model_cls = Depot
         
     def process_ajax_search(self):
-        check_result = Address.check_unique_value(self.request, self.user.business_group)
+        check_result = Address.check_unique_value(model_rec=self.request, 
+                                                  cur_user=self.user)
         if check_result['status'] == True:
             record = {}
             record['ajax_search_message'] = "Please add the postal address via 'Manage Address' first!"

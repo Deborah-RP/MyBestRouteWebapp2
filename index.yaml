@@ -65,6 +65,11 @@ indexes:
   - name: business_group
   - name: postal
 
+- kind: Address
+  properties:
+  - name: cust_name
+  - name: postal
+
 - kind: Area
   properties:
   - name: business_group
@@ -81,6 +86,19 @@ indexes:
   - name: business_group
   - name: is_active
   - name: area_name
+
+- kind: AuditLog
+  properties:
+  - name: business_group
+  - name: business_team
+  - name: tm_created
+    direction: desc
+
+- kind: AuditLog
+  properties:
+  - name: business_group
+  - name: tm_created
+    direction: desc
 
 - kind: BusinessGroup
   properties:
@@ -236,6 +254,13 @@ indexes:
 - kind: User
   properties:
   - name: business_group
+  - name: access_level
+  - name: email_lower
+
+- kind: User
+  properties:
+  - name: business_group
+  - name: business_team
   - name: access_level
   - name: email_lower
 

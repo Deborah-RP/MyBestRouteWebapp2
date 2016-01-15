@@ -39,8 +39,9 @@ class ActivateGroupHandler(SysAdminHandler):
     
     def async_query_all_json(self):
         cond_list = [BusinessGroup.status == config.PENDING_STATUS]
-        SysAdminHandler.async_query_all_json(self, cond_list=cond_list)
-
+        SysAdminHandler.async_query_all_json(self, 
+                                             cond_list=cond_list, 
+                                             cur_user=self.user)
 
     def post_activate_process(self, result, model_rec):
         if result['status'] == True:
@@ -55,7 +56,8 @@ class ActivateGroupHandler(SysAdminHandler):
     def get_admin_emails(self, business_group):
         cond_list = [User.business_group == business_group,
                      User.access_level == config.GROUP_ADMIN.access_level]
-        result = User.query_data_to_dict(cond_list=cond_list)
+        result = User.query_data_to_dict(cur_user=self.user,
+                                         cond_list=cond_list)
         #logging.debug(result)
         to_address = ""
         for each in result:
@@ -82,7 +84,6 @@ class ActivateGroupHandler(SysAdminHandler):
         logging.info("Activation email sent to %s: %s" %(to_address, msg))
         self.send_email(to_address, subject, msg)
         
-        
 class AuditLogHandler(SysAdminHandler):
     def init_form_data(self):
         self.page_name = 'audit log'
@@ -92,8 +93,6 @@ class AuditLogHandler(SysAdminHandler):
         self.form['tb_buttons'] = 'export'
     
     def async_query_all_json(self):
-        self.model_cls.is_group_search = False
-        self.model_cls.is_team_search = False
         super(AuditLogHandler, self).async_query_all_json()
         
 class SysAdminUserHandler(SysAdminHandler, UserHandler):
@@ -105,6 +104,8 @@ class SysAdminUserHandler(SysAdminHandler, UserHandler):
         self.form['tb_buttons'] = 'create,edit,delete,export'
         self.max_user_level = config.SYS_ADMIN.access_level
         self.min_user_level = config.GROUP_ADMIN.access_level
+        self.is_audit = True
+        self.audit_event_key = 'email_lower'        
         self.create_exclude_list = ['business_team']
         self.edit_exclude_list = ['business_team']
         self.form_exclude_list = ['business_team']

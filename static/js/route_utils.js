@@ -12,6 +12,7 @@ function init_crud_page() {
     var tb_params = {};
     tb_params.create_modal_id = "#create_modal"
     tb_params.edit_modal_id = "#edit_modal";
+    tb_params.upload_edit_modal_id = "#upload_edit_modal";
     tb_params.tb_id = "#CURDTable";
     tb_params.ajax = $("#tb_ajax_url").val();
     tb_params.dt_source = $("#dt_source").val();
@@ -32,12 +33,12 @@ function init_crud_page() {
     });
 
     $("form").each(function(){
-        $(this).validator().submit(function (e) {   
+        $(this).validator().submit(function (e) {
             if (e.isDefaultPrevented()) {
-                //console.log("Validation failed!");
+                console.log("Validation failed!");
                 return;
             } else {
-                form_async_submit($(this), e, null);
+                form_async_submit($(this), e, tb_params);
             }
         });
     });
@@ -76,12 +77,30 @@ function init_crud_page() {
             $("#upload_modal").add_select_options(xlf_header, ignore_headers);
         },
         'process_wb:stop': function(e, upload_data){
-            $("#upload_modal").modal('hide');
-            var ajax_data = {
-                formType: 'async_upload', 
-                upload_data: upload_data,        
-            };
-            json_async_submit(tb_params, ajax_data);
+            //check if all the required fields has value
+            var required_fields = $("#upload_modal :input[required]");
+            var validated = true;
+
+            required_fields.each(function (){
+                var val = $(this).val();
+                //console.log($(this).attr('id') + ":" + val);
+                if ((val == null) || (val == "")){
+                    validated = false;
+                    return;
+                }
+            });
+            
+            if (validated == true) {
+                $("#upload_modal").modal('hide');
+                var ajax_data = {
+                    formType: 'async_upload', 
+                    upload_data: upload_data,        
+                };
+                json_async_submit(tb_params, ajax_data);
+            }
+            else {
+                 bootbox.alert("Please choose a column for all the required fields!");
+            }
         },
     });
         
@@ -237,8 +256,8 @@ $.fn.add_select_options= function (options, ignore_list){
         $(this).empty();
         
         $(this).append($("<option></option>")
-        .attr("value",-1)
-        .text("Choose the option"));  
+        .text("Please choose the option")
+        .attr("value",""));
         
         for (key in options){
             var value = options[key];
@@ -363,29 +382,33 @@ function form_async_submit($form, e, tb_params) {
     if (tb_params) {
         var table = $(tb_params.tb_id).DataTable();
     }
+    //print_obj(tb_params)
     e.preventDefault();
-        $.ajax({
-            type: $form.attr('method'),
-            url: $form.attr('action'),
-            data: $form.serialize(),
-            success: function(data, status) {
-                if (data.status === true) {
-                    if (data.message) {
-                        bootbox.alert(data.message, function(){
-                            if (table) {
-                                $target.modal('hide');
-                                $form[0].reset();
-                                table.ajax.reload();
-                                var upload_table_id = $("#detele_table_id").val();
-                                del_selected_row(upload_table_id);
-                            }
-                            else {
-                                location.reload();
-                            }
-                        });
+    $.ajax({
+        type: $form.attr('method'),
+        url: $form.attr('action'),
+        data: $form.serialize(),
+        success: function(data, status) {
+            if (data.status === true) {
+                if (data.message) {
+                    bootbox.alert(data.message, function(){
+                        if (table) {
+                            console.log('table_reload')
+                            $target.modal('hide');
+                            $form[0].reset();
+                            table.ajax.reload();
+                            var upload_table_id = $("#detele_table_id").val();
+                            del_selected_row(upload_table_id);
+                        }
+                        else {
+                            console.log('window reload')
+                            //location.reload();
+                        }
+                    });
                     }
                     
                     if (data.redirect){
+                         console.log('redirect')
                          window.location.href = data.redirect;   
                     }
                 }
@@ -437,12 +460,12 @@ function show_upload_data(tb_params, return_data){
     var fail_list = [];
     var success_list = []
     for (var idx =0; idx < return_data.upload_return_data.length; idx++){
-        var record = return_data['upload_return_data'][idx]
+        var record = return_data['upload_return_data'][idx];
         if (record.upload_status === true){
-            success_list.push(record);
+            success_list.push(record.entity);
         }
         else {
-            fail_list.push(record);   
+            fail_list.push(record.entity);   
         }
     }
     
@@ -451,7 +474,7 @@ function show_upload_data(tb_params, return_data){
         var upload_fail_tb_params = $.extend(true, {}, tb_params);
         upload_fail_tb_params.crud_tb_id = upload_fail_tb_params.tb_id;
         upload_fail_tb_params.tb_id = "#upload_fail_table";
-        upload_fail_tb_params.edit_modal_id = upload_fail_tb_params.create_modal_id;
+        upload_fail_tb_params.edit_modal_id = upload_fail_tb_params.upload_edit_modal_id;
         upload_fail_tb_params.tableTools.tb_buttons = "edit_upload,export";
         upload_fail_tb_params.tableTools.aButtons = init_tb_btn(upload_fail_tb_params);
         upload_fail_tb_params.js_datasource = fail_list;
@@ -532,6 +555,7 @@ function server_search($current_field, search_url, search_get_fields, search_set
     var posting = $.post(search_url, search_data);
     
     posting.done(function(data){
+
         if (data != null) {
             if (data.ajax_search_message) {
                 bootbox.alert(data.ajax_search_message);
@@ -617,7 +641,7 @@ function create_new_field(add_btn){
     wrapper.append(new_div);    
     var $new_div = wrapper.find('div:last')
     $new_div.append(new_field);
-    
+
     $('.remove_field').click(function(e){
         e.preventDefault();
         $(this).parent('div').remove(); 

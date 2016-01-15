@@ -37,7 +37,7 @@ class AuthHandler(BaseHandler):
                 UserRole.role_name == config.DEFAULT_USER_ROLE.role_name).get().access_level
         
         #Create a new user
-        response = self.model_cls.create_model_entity(self.request.POST)
+        response = self.model_cls.create_model_entity(model_rec=self.request.POST)
         
         if response['status'] == True:
             user = response['user_data'][1]
@@ -190,7 +190,7 @@ class SignupHandler(AuthHandler):
             return 
         
         self.request.POST['price_plan'] = str(price_plan.key.id())
-        response = BusinessGroup.create_model_entity(self.request.POST)
+        response = BusinessGroup.create_model_entity(model_rec=self.request.POST)
         if response['status'] != True:
             self.async_render_msg(response)
             return 

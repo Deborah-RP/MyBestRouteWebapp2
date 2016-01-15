@@ -1,0 +1,29 @@
+<div id="upload_edit_modal" class="modal" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <a class="close" data-dismiss="modal">&times;</a>
+                <h3>{{ form.create_title }}</h3>
+            </div>
+            <div class="modal-body">
+                <form method="post" action="{{form.action}}" role="form" id="{{form.create_id}}" data-toggle="validator" data-target='#upload_edit_modal' class="form-horizontal well">
+                    <input type='hidden' value= "{{form.create_type}}" name='formType'>
+                    
+                    {% include 'edit_form_fields.html' %}
+                    <div class="form-group">
+                        <input class="btn btn-lg btn-success col-md-4 col-md-offset-2" type="submit" value="Submit" name="submitBtn">
+                        <input class="btn  btn-lg btn-warning col-md-2 col-md-offset-2" type="button" value="Close" data-dismiss="modal">
+                    </div>
+                    
+                    <input type='hidden' value='{{form.dt_source}}' name='dt_source'>
+                    <input type='hidden' class='fake_team' id='fake_team_id' name='fake_team_id'>
+                    <input type='hidden' value='' id='detele_table_id'>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <div class="help-block with-errors col-md-9 col-md-offset-3">{{ status_msg }}</div>
+            </div>
+
+        </div>
+    </div>
+</div>

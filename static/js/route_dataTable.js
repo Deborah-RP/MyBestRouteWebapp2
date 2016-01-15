@@ -128,11 +128,12 @@ function edit_tb_row(tb_params){
     for( var key in row) {
         var $form = $(tb_params.edit_modal_id)
         var query_str = "[name='" + key+"']";
-        var form_field = $form.find(query_str) 
+        var form_fields = $form.find(query_str) 
+        var form_field = $form.find(query_str+":first");
         
         //For repeated field, remove all the additonal fields
-        if (form_field.length > 1){
-            form_field.each(function( index ) {
+        if (form_fields.length > 1){
+            form_fields.each(function( index ) {
                 if (index > 0){
                     $(this).parent('div').remove(); 
                 }
@@ -146,9 +147,10 @@ function edit_tb_row(tb_params){
                 form_field.val(null);
                 
                 //Handle the repeated select-one field
+                //print_obj(row[key]);
                 if ($.isArray(row[key])){
                     var repeat_val = row[key];
-                    //print_obj(repeat_val);
+                    print_obj(repeat_val);
                     for (var idx=0; idx < repeat_val.length; idx++){
                         var current_val = repeat_val[idx];
                         sel_query = "option:contains('"+current_val+"')";

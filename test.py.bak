@@ -1,17 +1,16 @@
 import webapp2
 import config
-import json
-from handler import base
+from handler.base import BaseHandler
 
-class TestJinja2(base.BaseHandler):
+class TestJinja2(BaseHandler):
     def get(self):
         self.render("test_jinja2.html")
         
-class TestEditor(base.BaseHandler):
+class TestEditor(BaseHandler):
     def get(self):
         self.render("test_editor.html")
         
-class TestEditorRead(base.BaseHandler):
+class TestEditorRead(BaseHandler):
     def get(self):
         data = {}
         data['data'] = [

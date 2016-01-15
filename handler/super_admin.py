@@ -70,12 +70,10 @@ class UserRoleHandler(SuperAdminHandler):
         self.form['action'] = '/super_admin/user_role'
         self.form['dt_source'] = 'UserRole'
         self.model_cls = UserRole
-        self.is_audit = True
-        self.audit_event_key = 'role_name' 
         self.form['tb_buttons'] = 'create,edit,delete,export'
     
     def async_query_all_json(self):
-        cond_list = [self.model_cls.access_level <= self.user.access_level]
+        cond_list = [UserRole.access_level <= self.user.access_level]
         super(UserRoleHandler, self).async_query_all_json(cond_list=cond_list)
         
     def post(self):
@@ -109,7 +107,6 @@ class SuperAdminUserHandler(SuperAdminHandler, UserHandler):
         self.create_exclude_list = ['business_team']
         self.edit_exclude_list = ['business_team']
         self.form_exclude_list = ['business_team']
-        
                     
 app = webapp2.WSGIApplication([
     (r'/super_admin/init_config_form$', InitConfigFormHandler),

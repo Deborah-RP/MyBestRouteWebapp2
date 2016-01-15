@@ -19,18 +19,18 @@
     <!--<a class="navbar-brand" href="index.html">Route Planner Prototype</a>-->
 </div>
 <!-- /.navbar-header -->
-
 <div class="collapse navbar-collapse">
-    {%if (form and form.teams_in_group and user.access_level >= 100) %}
+    <!-- {%if (form and form.teams_in_group and user.access_level >= 100) %}
         <form class="navbar-form navbar-nav">
-            <select id= "simulated_team" name="simulated_team" onchange="set_fake_team_cookie.call(this)">
-            <option > Simulated Team</option>
+           <select id= "simulated_team" name="simulated_team" onchange="set_fake_team_cookie.call(this)">
             {% for field in form.teams_in_group %}
                 <option value ="{{field._entity_id}}"> {{field.text}}</option>
             {% endfor %}
             </select>
+            <button  type="button" class="btn btn-info" onclick="location.reload()" >Change Team</button>
         </form>
     {% endif %}
+    --->
     
     <!-- {%if (form and form.teams_in_group and user.access_level >= 100) %}
     <ul class="nav navbar-nav">

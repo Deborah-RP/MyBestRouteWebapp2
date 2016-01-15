@@ -1,90 +1,18 @@
+{% if (user.access_level == 50) %}
+    {% set user_url = '/team_admin' %}
+{% elif user.access_level == 100 %}
+    {% set user_url = '/group_admin' %}
+{% elif user.access_level == 500 %}
+    {%set user_url = '/sys_admin' %}
+{% elif user.access_level == 1000 %}
+    {%set user_url = '/super_admin' %}
+{% endif %}
+
+
 <div class="navbar-default sidebar" role="navigation">
     <div class="sidebar-nav navbar-collapse">
         <ul class="nav" id="side-menu">
-            <li class="sidebar-search">
-                <div class="input-group custom-search-form">
-                    <input type="text" class="form-control" placeholder="Search...">
-                    <span class="input-group-btn">
-	                    <button class="btn btn-default" type="button">
-	                    	<i class="fa fa-search"></i>
-	                    </button>
-                    </span>
-                </div>
-                <!-- /input-group -->
-            </li>
             
-            {% if (user.access_level >= 50 and user.access_level <= 100) %}
-                {% if (user.access_level == 50) %}
-                    {% set user_url = '/team_admin' %}
-                {% elif user.access_level == 100 %}
-                    {% set user_url = '/group_admin' %}
-                {% endif %}
-                <li>
-                    <a href="#"><i class="fa fa-map-marker fa-fw"></i> Location
-                        <span class="fa arrow"></span>
-                    </a>
-                    <ul class="nav nav-second-level">
-                        <li><a href="{{user_url}}/area">Manage Area </a></li>
-                        <li><a href="{{user_url}}/address">Manage Customer Address</a></li>
-                        <li><a href="#">Depot Station
-                            <span class="fa arrow"></span>
-                            </a>
-                            <ul class="nav nav-third-level">
-                                <li><a href="{{user_url}}/depot">Manage Depot</a></li>
-                                <li><a href="{{user_url}}/depot_template">Manage Depot Template</a></li>
-                            </ul>
-                        </li>
-                    </ul>
-                </li>
-                <li>
-                    <a href="#"><i class="fa fa-truck fa-fw"></i> Fleet 
-                        <span class="fa arrow"></span>
-                    </a>
-                    <ul class="nav nav-second-level">
-                        <li><a href="#">Type of Vehicle
-                             <span class="fa arrow"></span>
-                            </a>
-                            <ul class="nav nav-third-level">
-                                <li><a href="{{user_url}}/vehicle_type">Manage Vehicle Type</a></li>
-                                <li><a href="{{user_url}}/vehicle_type_template">Manage Vehicle Type Template</a></li>
-                            </ul>
-                        </li>
-                        <li><a href="#">Driver
-                             <span class="fa arrow"></span>
-                            </a>
-                            <ul class="nav nav-third-level">
-                                <li><a href="{{user_url}}/driver">Manage Driver</a></li>
-                                <li><a href="{{user_url}}/driver_template">Manage Driver Template</a></li>
-                            </ul>
-                        </li>
-
-                    </ul>
-                </li>
-            {%endif%}
-            {%if (user.access_level >= 10) and (user.access_level <= 50) %}
-                <li>
-                    <a href="#"><i class="fa fa-tasks fa-fw"></i> Plan 
-                        <span class="fa arrow"></span>
-                    </a>
-                    <ul class="nav nav-second-level">
-                        <li><a href="/team_user/task">Task</a></li>
-                        <li><a href="/team_user/route_plan">Route Plan</a></li>
-                    </ul>
-                </li>
-                <li>
-                    <a href="index.html"><i class="fa fa-phone fa-fw"></i> Booking </a>
-                </li>
-                <li>
-                    <a href="index.html"><i class="fa fa-clock-o fa-fw"></i> Track </a>
-                </li>
-                <li>
-                    <a href="index.html"><i class="fa fa-bar-chart fa-fw"></i> Your Existing Route<span class="fa arrow"></span></a>
-                    <ul class="nav nav-second-level">
-                        <li><a href="/upload_route">Upload</a></li>
-                        <li><a href="/analyze_route">Analyze</a></li>
-                    </ul>
-                </li>
-            {% endif %}
             {% if user.access_level >= 50 %}
                 <li>
                     <a href="index.html"><i class="fa fa-dashboard fa-fw"></i> Admin Dashboard<span class="fa arrow"></span></a>
@@ -131,7 +59,102 @@
                 <li>
                     {%if user.access_level >= 500 %} 
                         <a href="/sys_admin/audit_log"><i class="fa fa-history fa-fw"></i> Audit Log</a>
+                    {% elif user.access_level >= 50 %}
+                        <a href="{{user_url}}/audit_log"><i class="fa fa-history fa-fw"></i> Audit Log</a>
                     {% endif %}
+                </li>
+            {% endif %}
+            
+             {%if (form and form.teams_in_group and user.access_level >= 100) %}
+            <li class="sidebar-search">
+                <div class="input-group custom-search-form">
+                    <!-- <input type="text" class="form-control" placeholder="Search...">
+                    <span class="input-group-btn">
+	                    <button class="btn btn-default" type="button">
+	                    	<i class="fa fa-search"></i>
+	                    </button>
+                    </span>
+                    -->
+                        <h4>For Team Operation</h4>
+                        <select id= "simulated_team" name="simulated_team" onchange="set_fake_team_cookie.call(this)">
+                            {% for field in form.teams_in_group %}
+                            <option value ="{{field._entity_id}}"> {{field.text}}</option>
+                            {% endfor %}
+                        </select>
+                    <button type="button" class="btn btn-info" 
+                            onclick="location.reload()" >Change Simulated Team</button>
+                                        
+                </div>
+                <!-- /input-group -->
+            </li>
+            {% endif %} 
+            
+            {% if (user.access_level >= 50 and user.access_level <= 100) %}
+                <li>
+                    <a href="#"><i class="fa fa-map-marker fa-fw"></i> Location
+                        <span class="fa arrow"></span>
+                    </a>
+                    <ul class="nav nav-second-level">
+                        <li><a href="/team_admin/area">Manage Area </a></li>
+                        <li><a href="/team_admin/address">Manage Customer Address</a></li>
+                        <li><a href="#">Depot Station
+                            <span class="fa arrow"></span>
+                            </a>
+                            <ul class="nav nav-third-level">
+                                <li><a href="/team_admin/depot">Manage Depot</a></li>
+                                <li><a href="/team_admin/depot_template">Manage Depot Template</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <a href="#"><i class="fa fa-truck fa-fw"></i> Fleet 
+                        <span class="fa arrow"></span>
+                    </a>
+                    <ul class="nav nav-second-level">
+                        <li><a href="#">Type of Vehicle
+                             <span class="fa arrow"></span>
+                            </a>
+                            <ul class="nav nav-third-level">
+                                <li><a href="/team_admin/vehicle_type">Manage Vehicle Type</a></li>
+                                <li><a href="/team_admin/vehicle_type_template">Manage Vehicle Type Template</a></li>
+                            </ul>
+                        </li>
+                        <li><a href="#">Driver
+                             <span class="fa arrow"></span>
+                            </a>
+                            <ul class="nav nav-third-level">
+                                <li><a href="/team_admin/driver">Manage Driver</a></li>
+                                <li><a href="/team_admin/driver_template">Manage Driver Template</a></li>
+                            </ul>
+                        </li>
+
+                    </ul>
+                </li>
+            {%endif%}
+            {%if (user.access_level >= 10) and (user.access_level <= 50) %}
+                <li>
+                    <a href="#"><i class="fa fa-tasks fa-fw"></i> Plan 
+                        <span class="fa arrow"></span>
+                    </a>
+                    <ul class="nav nav-second-level">
+                        <li><a href="/team_user/task">Task</a></li>
+                        <li><a href="/team_user/route_plan">Route Plan</a></li>
+                    </ul>
+                </li>
+                <li>
+                    <a href="index.html"><i class="fa fa-clock-o fa-fw"></i> Track </a>
+                </li>    
+                <li>
+                    <a href="index.html"><i class="fa fa-phone fa-fw"></i> Booking </a>
+                </li>
+
+                <li>
+                    <a href="index.html"><i class="fa fa-bar-chart fa-fw"></i> Your Existing Route<span class="fa arrow"></span></a>
+                    <ul class="nav nav-second-level">
+                        <li><a href="/upload_route">Upload</a></li>
+                        <li><a href="/analyze_route">Analyze</a></li>
+                    </ul>
                 </li>
             {% endif %}
         </ul>

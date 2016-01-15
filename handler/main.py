@@ -53,7 +53,8 @@ class HomePage(BaseHandler):
             #Get all the user created since last logout
             cond_list = [account.User.tm_created > last_visit_tm]
             order_list = [account.User.tm_created]
-            result = account.User.query_data_to_dict(cond_list=cond_list,
+            result = account.User.query_data_to_dict(cur_user=self.user,
+                                                     cond_list=cond_list,
                                                      order_list=order_list)
             
             user_cnt = 0
@@ -70,14 +71,16 @@ class HomePage(BaseHandler):
             
             cond_list = [account.PricePlan.tm_created > last_visit_tm]
             order_list = [account.PricePlan.tm_created]
-            result = account.PricePlan.query_data_to_dict(cond_list=cond_list,
-                                                     order_list=order_list)
+            result = account.PricePlan.query_data_to_dict(cur_user=self.user,
+                                                          cond_list=cond_list,
+                                                          order_list=order_list)
             self.homepage['new_plan_num'] = len(result)
             self.homepage['priceplan_url'] = "/sys_admin/price_plan"
             
             cond_list = [account.BusinessGroup.status == config.PENDING_STATUS]
-            result = account.BusinessGroup.query_data_to_dict(cond_list=cond_list,
-                                                     order_list=order_list)
+            result = account.BusinessGroup.query_data_to_dict(cur_user=self.user,
+                                                              cond_list=cond_list,
+                                                              order_list=order_list)
             
             self.homepage['new_group_num'] = len(result)
             self.homepage['group_url'] = "/sys_admin/activate_group"

@@ -238,11 +238,10 @@ class CRUDHandler(BaseHandler):
             new_log['event_desc'] = event_desc
             new_log['business_group'] = self.user.business_group
             new_log['user_created'] = self.user.key
-            new_log['business_team'] = self.user.business_team
+            new_log['business_team'] = self.request.get('business_team')
             
             result = AuditLog.create_model_entity(model_rec=new_log, 
-                                                    user_business_group=self.user.business_group,
-                                                    user_business_team=self.user.business_team)
+                                                  cur_user=self.user)
             
     def init_form_data(self):
         pass
@@ -252,21 +251,18 @@ class CRUDHandler(BaseHandler):
         
     def get(self):
         self.form['field_list'] = self.model_cls.get_form_fields(
-                                    self.form_include_list, 
-                                    self.form_exclude_list,
-                                    user_business_group=self.user.business_group,
-                                    user_business_team=self.user.business_team
-                                    )
+                                    include_list=self.form_include_list, 
+                                    exclude_list=self.form_exclude_list,
+                                    cur_user=self.user)
         self.form = self.process_get_form_data(self.form)
         self.render(self.default_form, form=self.form)
         
     def get_edit(self, model_entity, edit_attr_list=None):
         self.form['field_list'] = self.model_cls.get_form_fields(
-                                    self.edit_include_list, 
-                                    self.edit_exclude_list,
-                                    user_business_group=self.user.business_group,
-                                    user_business_team=self.user.business_team)
-        tmp_obj = model_entity.to_dict()
+                                    include_list=self.edit_include_list, 
+                                    exclude_list=self.edit_exclude_list,
+                                    cur_user=self.user)
+        tmp_obj = model_entity.to_dict(cur_user=self.user)
         for field in self.form['field_list']:
             prop_name = field['prop_name']
             field['default_value'] = tmp_obj[prop_name]
@@ -303,8 +299,7 @@ class CRUDHandler(BaseHandler):
                 post_dict[key] = model_rec.get(key)                
             
         result = self.model_cls.create_model_entity(model_rec=post_dict, 
-                                                    user_business_group=self.user.business_group,
-                                                    user_business_team=self.user.business_team)
+                                                    cur_user=self.user)
         result = self.post_create_process(result=result, model_rec=post_dict)
         if result['status'] == True:
             rec_entity = result['entity']
@@ -312,7 +307,6 @@ class CRUDHandler(BaseHandler):
         else:
             logging.error(result['message'])
         self.async_render_msg(result)
-
 
     def process_edit_data(self, model_rec):
          return model_rec
@@ -333,9 +327,8 @@ class CRUDHandler(BaseHandler):
             else:
                 post_dict[key] = model_rec.get(key)
                 
-        result = self.model_cls.update_model_entity(post_dict, 
-                                                    user_business_group=self.user.business_group,
-                                                    user_business_team=self.user.business_team)
+        result = self.model_cls.update_model_entity(model_rec=post_dict, 
+                                                    cur_user=self.user)
         if result['status'] == True:        
             rec_entity = result['entity']
             self.create_audit_log('Edit', rec_entity)
@@ -360,15 +353,15 @@ class CRUDHandler(BaseHandler):
             result = self.model_cls.convert_keyprop_by_value(
                                                              template_prop_name, 
                                                              template_name,
-                                                             user_business_group=self.user.business_group,
-                                                             user_business_team=self.user.business_team)
+                                                             model_rec=upload_data_rec,
+                                                             cur_user=self.user)
             if result['status'] == False:
                 return result
             else: 
                 template_key = result['key']
                 del result['key']        
         
-        template_rec = template_key.get().to_dict() 
+        template_rec = template_key.get().to_dict(cur_user=self.user) 
         for key in self.template_upload_set_list:
             if key in upload_data_rec:
                 if upload_data_rec[key].strip() =="":
@@ -381,8 +374,8 @@ class CRUDHandler(BaseHandler):
         upload_data = json.loads(self.request.get('upload_data'))
         upload_data = self.process_upload_data(upload_data)
         #for return value, keep the json format
-        return_data = json.loads(self.request.get('upload_data'))
-
+        original_data = json.loads(self.request.get('upload_data'))
+        return_data = []
         success_cnt = 0
         fail_cnt = 0
         success_message = ""
@@ -390,27 +383,32 @@ class CRUDHandler(BaseHandler):
         
         for idx in range(0, len(upload_data)):
             each = upload_data[idx]
-            each_down = return_data[idx]
+            each_down = {}
             if each:
                 result = self.model_cls.create_model_entity(model_rec=each, 
-                                                            user_business_group=self.user.business_group,
                                                             type='upload',
-                                                            user_business_team=self.user.business_team)
+                                                            cur_user=self.user)
+                
                 
                 each_down['upload_status'] = result['status']
-                each_down['status_message'] = result['message']
-                each_down['_entity_id'] = None
+                
+                if ('entity' in result) and result['entity']:
+                    each_down['entity'] = result['entity'].to_dict(cur_user=self.user)
+                else:
+                    each_down['entity'] = original_data[idx]
+                each_down['entity']['status_message'] = result['message']
+                each_down['entity']['_entity_id'] = None
+                return_data.append(each_down)
+                
                 if result['status'] == True:
                     success_cnt +=1
                     success_message = result['message']
                     rec_entity = result['entity']
                     self.create_audit_log('Create', rec_entity)
-                    
                 else:
                     fail_cnt +=1
-                    fail_message =  result['message']
-                    logging.error(result['message'])
-                    
+                    fail_message = result['message']
+                    #logging.error(result['message'])
                 
         result = construct_return_msg(success_cnt, fail_cnt, "upload", success_message, fail_message);
         result['upload_return_data'] = return_data
@@ -459,9 +457,8 @@ class CRUDHandler(BaseHandler):
             act_dict = {}
             act_dict['_entity_id'] = each['_entity_id']
             act_dict['status'] = config.ACTIVE_STATUS
-            result = self.model_cls.update_model_entity(act_dict, 
-                                                        user_business_group=self.user.business_group,
-                                                        user_business_team=self.user.business_team)
+            result = self.model_cls.update_model_entity(model_rec=act_dict, 
+                                                        cur_user=self.user)
             #print ("result %s" %result)
             if result['status'] == True:
                 success_cnt +=1
@@ -479,7 +476,8 @@ class CRUDHandler(BaseHandler):
 
     def async_query_kind(self):
         kind_name = self.request.get('kind_name')
-        data_list = FormField.query_kind_dict(kind_name)
+        data_list = FormField.query_kind_dict(kind_name=kind_name,
+                                              cur_user=self.user)
         result_list = []
         
         for each in data_list:
@@ -499,14 +497,18 @@ class CRUDHandler(BaseHandler):
                              cond_list=None, 
                              order_list=None, 
                              is_with_entity_id=True,
-                             user_business_group=None,
-                             user_business_team=None):
+                             cur_user=None):
         data ={}
+        
+        if cur_user == None:
+            cur_user = self.user
+
         data['data'] = self.model_cls.query_data_to_dict(cond_list=cond_list, 
                                                          order_list=order_list,
                                                          is_with_entity_id=is_with_entity_id,
-                                                         user_business_group=user_business_group,
-                                                         user_business_team=user_business_team)
+                                                         cur_user=cur_user)
+        
+        print data
         self.render_json(data)
         
     def ajax_search(self):
@@ -518,6 +520,7 @@ class CRUDHandler(BaseHandler):
     
     def template_search(self):
         record = self.process_template_search()
+        print record
         self.render_json(record)
         
     def process_template_search(self):

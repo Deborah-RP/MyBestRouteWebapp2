@@ -75,15 +75,13 @@ class RoutePlanHandler(TeamUserHandler):
         
     def get(self):
         self.form['field_list'] = self.model_cls.get_form_fields(
-                                    self.form_include_list, 
-                                    self.form_exclude_list,
-                                    self.user.business_group,
-                                    self.user.business_team)
+                                    include_list=self.form_include_list, 
+                                    exclude_list=self.form_exclude_list,
+                                    cur_user=self.user)
         self.form['route_task_field_list'] = Task.get_form_fields(
-                                    self.form_include_list, 
-                                    self.form_exclude_list,
-                                    self.user.business_group,
-                                    self.user.business_team)
+                                    include_list=self.form_include_list, 
+                                    exclude_list=self.form_exclude_list,
+                                    cur_user=self.user)
         self.render("plan_crud_form.html", form=self.form)
         
     

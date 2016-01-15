@@ -56,9 +56,6 @@ handlers:
   script: handler.super_admin.app
   secure: always
   
-- url: /test/.*
-  script: test.app
-
 - url: /.*
   script: handler.main.app
   secure: always  

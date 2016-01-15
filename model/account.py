@@ -100,6 +100,13 @@ class BusinessGroup(BaseModel):
         new_check_key['model_cls'] = User
         new_check_key['other_prop'] = User.business_group
         check_existing_key.append(new_check_key)
+
+        new_check_key = {}
+        new_check_key['model_display_name'] = 'business team'
+        new_check_key['model_cls'] = BusinessTeam
+        new_check_key['other_prop'] = BusinessTeam.business_group
+        check_existing_key.append(new_check_key)
+        
         return check_existing_key
 
 '''
@@ -145,10 +152,21 @@ class BusinessTeam(BaseModel):
                                  verbose_name=','.join(config.COUNTRY_LIST))
     timezone = ndb.StringProperty(required=True, verbose_name="timezone_option")
         
-    is_group_search = True
-    
+    unique_level = config.GROUP_UNIQUE.unique_level    
     unique_and_props = ['team_name']
     model_display_name = 'business team'   
+
+    @classmethod
+    def prepare_check_key(cls):
+        check_existing_key = []
+        
+        new_check_key = {}
+        new_check_key['model_display_name'] = 'user'
+        new_check_key['model_cls'] = User
+        new_check_key['other_prop'] = User.business_team
+        check_existing_key.append(new_check_key)
+
+        return check_existing_key
          
 '''
 class for User, which extends the default webapp2 User model
@@ -302,7 +320,7 @@ class User(BaseModel, webapp2_extras.appengine.auth.models.User):
         if response['status'] != True:
             return response
         
-        response = model_entity.get_data_from_rec(model_rec)
+        response = model_entity.get_data_from_rec(model_rec=model_rec)
         if response['status'] != True:
             return response
         else:
@@ -322,7 +340,7 @@ class User(BaseModel, webapp2_extras.appengine.auth.models.User):
 
         user_data = cls.create_user(email_lower, None, **data)
         if not user_data[0]: 
-            response['message'] = 'Unable to create user because email already exists.' %email_lower
+            response['message'] = 'Unable to create user because email already exists.'
             response['status'] = False
             return response
         else:
@@ -353,6 +371,7 @@ class User(BaseModel, webapp2_extras.appengine.auth.models.User):
             tmp_entity.put()
             result['status'] = True
             result['message'] = "The user account has been terminated!"             
+            result['entity'] = tmp_entity
             return result 
 
 '''
@@ -365,10 +384,12 @@ class GroupModel(BaseModel):
     user_created = ndb.KeyProperty(required=True, kind=User, verbose_name='user_name')
     business_team = ndb.KeyProperty(kind=BusinessTeam, verbose_name='team_name')    
     is_group_search = True
+    unique_level = config.GROUP_UNIQUE.unique_level
     
 class TeamModel(GroupModel):
     business_team = ndb.KeyProperty(required=True,kind=BusinessTeam, verbose_name='team_name')
     is_team_search = True
+    unique_level = config.TEAM_UNIQUE.unique_level
 '''
     Base model for template class
 '''

@@ -16,7 +16,7 @@ class BaseDocument(object):
     @classmethod
     def is_valid_doc_id(cls, doc_id):
         for char in doc_id:
-            if char not in __VISIBLE_PRINTABLE_ASCII:
+            if char not in cls._VISIBLE_PRINTABLE_ASCII:
                 return False
         return not doc_id.startswith('!')
     
@@ -81,7 +81,6 @@ class BaseDocument(object):
     def query_doc(cls, query_string):
         index = cls.get_index()
         results = index.search(query_string)
-        print (results)
         return results
     
     @classmethod
@@ -96,9 +95,13 @@ class BaseDocument(object):
             
     @classmethod
     def get_record_dict(cls, doc_id=None, query_string=None):
-        result_rec = None
+        result_rec = []
         if doc_id:
             doc_rec = cls.get_doc_by_id(doc_id)
+            if doc_rec != None:
+                result_rec.append(cls.doc_to_dict(doc_rec))
+            else:
+                result_rec = None            
         elif query_string:
             doc_rec = cls.query_doc(query_string)
             
@@ -133,7 +136,30 @@ class AddressDocument(BaseDocument):
         address['street'] = record.get('street')
         address['city'] = record.get('city')
         address['state'] = record.get('state')
-        address['formatted_address'] = record.get('formatted_address')
+        #address['formatted_address'] = record.get('formatted_address')
+        
+        address['formatted_address'] = ""
+
+        if address['building']:
+            address['formatted_address'] += address['building'] + " "
+             
+        if address['street']:
+            address['formatted_address'] += address['street'] +  ", "
+            
+        if address['country'] != 'Singapore' and address['city']:
+            address['formatted_address'] += address['city'] +  ", "
+            
+        if address['country'] != 'Singapore' and address['state']:
+            address['formatted_address'] += address['state'] +  ", "
+            
+        if address['country']:
+            address['formatted_address'] += address['country'] + " "
+            
+        if address ['postal']:
+            address['formatted_address'] += address['postal']  
+                
+        if address['country'] == 'Singapore' and address['postal']:
+            address['doc_id'] = "Singapore+"+address['postal']        
         
         return address
     
@@ -180,9 +206,13 @@ class AddressDocument(BaseDocument):
         query_string = ""
         
         address = cls.create_address_dict(doc_rec)
-        print (address)
+        
         for key, value in address.items():
             if key == "formatted_address":
+                continue
+            
+            if key == "doc_id":
+                doc_id = value
                 continue
             
             if value and len(value) > 0:
@@ -195,7 +225,7 @@ class AddressDocument(BaseDocument):
         if DEBUG:
             logging.info("query_string:%s" %(query_string))
             
-        record = cls.get_record_dict(doc_id=None, query_string=query_string)
+        record = cls.get_record_dict(doc_id=doc_id, query_string=query_string)
         
         #record not found in search index, get the geocode from api
         if not record:
