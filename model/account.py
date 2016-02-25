@@ -1,13 +1,14 @@
 import webapp2
-import logging
-import time
+import logging, json
+import time, datetime
 import config
 
 from google.appengine.ext import ndb
+from google.appengine.api import channel
 import webapp2_extras.appengine.auth.models
 from webapp2_extras import security
 
-from base_model import BaseModel
+from base_model import BaseModel, UserTimeZone
 from config import DEBUG
 from utils.exception_utils import * 
 
@@ -28,8 +29,8 @@ class PricePlan(BaseModel):
     
     #Modules that allowed to be used in the plan
     plan_modules = ndb.StringProperty(repeated=True, 
-                                      choices=['module 1', 'module 2', 'module 3'], 
-                                      verbose_name='module 1,module 2,module 3')
+                                      choices=['Booking', 'Planning', 'Tracking'], 
+                                      verbose_name='Booking,Planning,Tracking')
     
     #max_user_per_group = ndb.IntegerProperty(required=True, indexed=False)
     #max_route_per_group =ndb.IntegerProperty(required=True, indexed=False)
@@ -167,6 +168,102 @@ class BusinessTeam(BaseModel):
         check_existing_key.append(new_check_key)
 
         return check_existing_key
+    
+class ChannelMessage(object):
+    def __init__(self, 
+                 message,
+                 cur_user,
+                 message_type = None,
+                 received_users = None,
+                 received_groups = None,
+                 received_teams = None,
+                 received_pages = None,
+                 
+                 ):
+        self.message = message
+        self.message_type = message_type
+        self.received_users = self.entity_list_to_dict(received_users, cur_user)
+        self.received_groups = self.entity_list_to_dict(received_groups, cur_user)
+        self.received_teams = self.entity_list_to_dict(received_teams, cur_user)
+        self.received_pages = received_pages
+    
+    @staticmethod            
+    def entity_list_to_dict(entity_list, cur_user):
+        result_list = None
+        if entity_list == None or len(entity_list) == 0:
+            result_list = None
+        else:
+            result_list = []
+            for each in entity_list:
+                entity_id = each.to_dict(cur_user)['_entity_id']
+                result_list.append(entity_id)
+        return result_list
+    
+    def send(self, received_user):
+        client_id = received_user.email_lower
+        message = json.dumps(self.__dict__)
+        channel.send_message(client_id, message)
+        
+    def broadcast(self):
+        logging.info("broadcasting")
+        all_channels = UserChannel.get_valid_channels()
+        message = json.dumps(self.__dict__)
+        for each in all_channels:
+            client_id = each.email_lower
+            channel.send_message(client_id, message)
+    
+class UserChannel(BaseModel):
+    email_lower = ndb.StringProperty(required=True)
+    token = ndb.StringProperty(required=True)
+    expired = ndb.DateTimeProperty(required=True)
+    
+    @classmethod
+    def query_user_channel(cls, email_lower):
+        query_result = cls.query(cls.email_lower == email_lower)
+        return query_result.get()
+    
+    @classmethod
+    def create_user_channel(cls, email_lower):
+        user_channel = cls.query_user_channel(email_lower)
+        
+        if user_channel == None:
+            user_channel = cls()
+            user_channel.email_lower = email_lower
+        
+        user_channel.expired = datetime.datetime.now() + datetime.timedelta(hours=24)
+        user_channel.token = channel.create_channel(email_lower,
+                                                  duration_minutes=24*60)
+        user_channel.put()
+        return user_channel
+    
+    def update_user_channel(self):
+        self.expired = datetime.datetime.now() + datetime.timedelta(hours=24)
+        self.token = channel.create_channel(self.email_lower,
+                                            duration_minutes=24*60)
+        self.put()
+    
+    '''
+        To get the token of the channel for user.
+        The token is a short lived one (24 hrs) 
+        If the token still available, return the existing one.
+        Else create a new token for the user
+    '''
+    @classmethod
+    def get_user_channel(cls, email_lower):
+        user_channel = cls.query_user_channel(email_lower)
+        
+        if user_channel != None:
+            if user_channel.expired <= datetime.datetime.now():
+                user_channel.update_user_channel()
+        else:
+            user_channel = cls.create_user_channel(email_lower)
+        return user_channel
+    
+    @classmethod
+    def get_valid_channels(cls):
+        query_result = cls.query(cls.expired > datetime.datetime.now())
+        return query_result.fetch()
+    
          
 '''
 class for User, which extends the default webapp2 User model
@@ -212,9 +309,33 @@ class User(BaseModel, webapp2_extras.appengine.auth.models.User):
         return cls.query().order(cls.business_group, cls.user_role, cls.email_lower)
     '''
     @property
+    def group_data(self):
+        business_group = self.business_group.get().to_dict(cur_user=self)
+        return business_group
+    
+    @property
+    def plan_data(self):
+        business_group = self.business_group.get()
+        price_plan = business_group.price_plan.get().to_dict(cur_user=self)
+        return price_plan
+    
+    @property
+    def role_data(self):
+        user_role = self.user_role.get().to_dict(cur_user=self)
+        return user_role
+    
+    @property
+    def team_data(self):
+        if self.business_team != None:
+            business_team = self.business_team.get().to_dict(cur_user=self)
+        else:
+            business_team = None
+        return business_team
+    
+    @property
     def group_status(self):
         business_group = self.business_group.get()
-        return business_group.status
+        return business_group.status    
     
     @property
     def group_name(self):
@@ -234,6 +355,22 @@ class User(BaseModel, webapp2_extras.appengine.auth.models.User):
     def role_name(self):
         user_role = self.user_role.get()
         return user_role.role_name
+    
+    @property
+    def user_timezone(self):
+        #if user team/group is not available, assume the default timezone (+8)
+        user_business_team = self.business_team
+        user_business_group = self.business_group
+        if user_business_team != None:
+            tz_offset = int(user_business_team.get().timezone)
+        elif user_business_group == None:
+            #Default set to Singapore timezone
+            tz_offset = 8
+        else:
+            #Get the group timezone for display
+            tz_offset = int(user_business_group.get().timezone)
+        user_tz = UserTimeZone(offset=tz_offset)
+        return user_tz        
     
     @classmethod
     def prepare_query_order(cls, order_list):

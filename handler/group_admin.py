@@ -67,7 +67,6 @@ class BusinessTeamHandler(GroupAdminHandler):
         self.model_cls = BusinessTeam
         self.is_audit = True
         self.audit_event_key = 'team_name'
-
         
     def process_get_form_data(self, form_data):
         form_data = self.set_default_country(form_data)

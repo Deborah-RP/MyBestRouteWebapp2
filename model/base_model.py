@@ -1,6 +1,7 @@
 import logging
 import config
-from datetime import datetime, tzinfo, timedelta
+import datetime
+from datetime import tzinfo, timedelta
 
 from google.appengine.ext import ndb
 from google.appengine.ext.ndb import metadata
@@ -43,7 +44,7 @@ class BaseModel(ndb.Model):
         Property to indicate if the record has been deleted
         True means record still available, False means record has been deleted
         This is to avoid the key error in datastore
-        ** Not used at the monment
+        ** Not used at the moment
     '''
     is_active = ndb.BooleanProperty(default=True)
     tm_created = ndb.DateTimeProperty(auto_now_add=True)
@@ -151,7 +152,8 @@ class BaseModel(ndb.Model):
                 cur_user, 
                 is_with_entity_id=True): 
         key_dict = {}
-        dt_list = []
+        date_list = []
+        time_list = []
         dt_ajust_list = []
         geo_list = []
         struct_list = []
@@ -160,8 +162,10 @@ class BaseModel(ndb.Model):
             #Get the property that represent the KeyProperty display value
             if prop_type == 'KeyProperty':
                 key_dict[prop_name] = self._properties[prop_name]._verbose_name
-            elif prop_type in ['TimeProperty', 'DateProperty']:
-                dt_list.append(prop_name)
+            elif prop_type == 'DateProperty':
+                date_list.append(prop_name)
+            elif prop_type == 'TimeProperty':
+                time_list.append(prop_name)                
             elif prop_type == 'DateTimeProperty':
                 dt_ajust_list.append(prop_name)
             elif prop_type == 'GeoPtProperty':
@@ -197,11 +201,16 @@ class BaseModel(ndb.Model):
                 tmp_obj[prop_name] = prop_model_cls._struct_prop_to_str(struct_obj)
         
         #for date and time property
-        for prop_name in dt_list:
+        for prop_name in date_list:
             if tmp_obj[prop_name] != None:
-                dt_obj = getattr(self, prop_name)
-                tmp_obj[prop_name] = dt_obj.isoformat()
+                date_obj = getattr(self, prop_name)
+                tmp_obj[prop_name] = date_obj.strftime("%d/%m/%Y")
                  
+
+        for prop_name in time_list:
+            if tmp_obj[prop_name] != None:
+                time_obj = getattr(self, prop_name)
+                tmp_obj[prop_name] = time_obj.strftime('%H:%M')
                 
         #for datetime property
         for prop_name in dt_ajust_list:
@@ -212,22 +221,10 @@ class BaseModel(ndb.Model):
                 UTC = UserTimeZone(offset=0)
                 
                 #if user team/group is not available, assume the default timezone (+8)
-                user_business_team = cur_user.business_team
-                user_business_group = cur_user.business_group
-                if user_business_team != None:
-                    tz_offset = int(user_business_team.get().timezone)
-                    user_tz = UserTimeZone(offset=tz_offset)
-                elif user_business_group == None:
-                    user_tz = UserTimeZone()
-                else:
-                    #Get the user timezone for display
-                    tz_offset = int(user_business_group.get().timezone)
-                    user_tz = UserTimeZone(offset=tz_offset)
-                    
-                #print("Timezone is %s" %tz_offset)    
+                user_tz = cur_user.user_timezone
                 dt_obj = dt_obj.replace(tzinfo=UTC).astimezone(user_tz)
                 #tmp_obj[prop_name] = dt_obj.isoformat()
-                tmp_obj[prop_name] = dt_obj.strftime('%Y-%m-%dT%H:%M:%S')         
+                tmp_obj[prop_name] = dt_obj.strftime('%d/%m/%Y %H:%M')         
         
         #for geopoint property
         for prop_name in geo_list:
@@ -278,12 +275,12 @@ class BaseModel(ndb.Model):
     def _get_unique_and_query(cls, 
                              model_rec, 
                              cur_user,
-                             type=None):
+                             op_type=None):
         and_query = None
    
         '''tmp_result = cls.get_data_from_rec(model_rec=model_rec, 
                                            cur_user=cur_user,
-                                           type=type)
+                                           op_type=op_type)
         print tmp_result
 
         if tmp_result['status'] != True:
@@ -301,7 +298,7 @@ class BaseModel(ndb.Model):
                     result=cls._convert_key_data_to_prop('business_group', 
                                                         model_rec=model_rec, 
                                                         cur_user=cur_user, 
-                                                        type=type)
+                                                        op_type=op_type)
                     if result['status'] == False:
                         logging.error(result['message'])
                     else:
@@ -313,7 +310,7 @@ class BaseModel(ndb.Model):
                     result=cls._convert_key_data_to_prop('business_team', 
                                                         model_rec=model_rec, 
                                                         cur_user=cur_user, 
-                                                        type=type)
+                                                        op_type=op_type)
                     if result['status'] == False:
                         logging.error(result['message'])
                     else:
@@ -345,7 +342,7 @@ class BaseModel(ndb.Model):
     def check_unique_value(cls, 
                            model_rec, 
                            cur_user, 
-                           type=None): 
+                           op_type=None): 
         result = {}
         result['status'] = True
         result['message'] = ""
@@ -353,7 +350,7 @@ class BaseModel(ndb.Model):
         
         and_query = cls._get_unique_and_query(model_rec=model_rec, 
                                              cur_user=cur_user,
-                                             type=type)
+                                             op_type=op_type)
                                              
         if and_query:
             query_result = and_query.fetch()
@@ -402,6 +399,34 @@ class BaseModel(ndb.Model):
         return prop_val
     
     '''
+        If the property is a Boolean type
+        Covert the value based on the type
+    '''
+   
+    @classmethod
+    def _convert_bool_prop(cls, prop_name, model_rec, op_type):
+        
+        #defualt property that only set at the backend
+        if prop_name == 'is_active':
+            return True
+        
+        if op_type == 'upload':
+            if prop_name in model_rec:
+                prop_val = model_rec.get(prop_name)
+                prop_val = cls.init_prop_val(prop_val).lower()
+                if prop_val == 'true':
+                    prop_val = True
+                elif prop_val == 'false':
+                    prop_val = False
+            else:
+                prop_val = None
+        else:
+            if prop_name in model_rec:
+                prop_val = True
+            else:
+                prop_val = False
+        return prop_val
+    '''
         If the property is a number type such as int, float
         Convert the string based on the type
     '''
@@ -423,28 +448,41 @@ class BaseModel(ndb.Model):
         Covert the string to the datetime value
     '''
     @staticmethod
-    def _convert_datetime_prop(prop_type, prop_val):
+    def _convert_datetime_prop(prop_type, prop_val, cur_user, op_type):
         dt_convert_list = {
-            'DateProperty': '%Y-%m-%d',
-            'DateTimeProperty': '%Y-%m-%d %H:%M:%S',
-            'TimeProperty': '%H:%M:%S', 
+            'DateProperty': '%d/%m/%Y',
+            'DateTimeProperty': '%d/%m/%Y %H:%M',
+            'TimeProperty': '%H:%M', 
             }
+        
+        if op_type == 'upload':
+            dt_convert_list['DateProperty'] = '%m/%d/%y'
         
         if prop_type in dt_convert_list:
             if prop_val != None:
                 
                 #Make sure the time format is HH:MM:SS
-                if prop_type == "TimeProperty" and prop_val.count(":") == 1:
+                '''if prop_type == "TimeProperty" and prop_val.count(":") == 1:
                     prop_val = prop_val + ":00"
-                    
-                prop_val = datetime.strptime(prop_val, dt_convert_list[prop_type])
+                logging.info(prop_val)
+                '''
                 
+                prop_val = datetime.datetime.strptime(prop_val, dt_convert_list[prop_type])
                 if prop_type == 'DateProperty':
-                    prop_val = datetime.date(prop_val)
+                    prop_val = prop_val.date()
                 elif prop_type == 'TimeProperty':
-                    prop_val = datetime.time(prop_val)
+                    prop_val = prop_val.time()
                 elif prop_type == 'DateTimeProperty':
-                    prop_val = datetime.datetime(prop_val)
+                    #Convert localtime to UTC time
+                    user_tz = cur_user.user_timezone
+                    UTC = UserTimeZone(offset=0)
+                    utc_tm = prop_val.replace(tzinfo=user_tz).astimezone(UTC)
+                    
+                    #Remove the timezone infomation as NDB does not accept it
+                    '''utc_tm_str = utc_tm.strftime(dt_convert_list[prop_type]) 
+                    prop_val = datetime.datetime.strptime(utc_tm_str, dt_convert_list[prop_type])
+                    '''
+                    prop_val = utc_tm.replace(tzinfo=None)
             
         return prop_val
         
@@ -456,7 +494,10 @@ class BaseModel(ndb.Model):
     def _convert_geopt_prop(prop_type, prop_val):
         if (prop_type == 'GeoPtProperty'):
             if prop_val != None:
-                prop_val = ndb.GeoPt(prop_val)
+                if isinstance(prop_val, (str, unicode)):
+                    prop_val = ndb.GeoPt(prop_val)
+                elif isinstance(prop_val, tuple):
+                    prop_val = ndb.GeoPt(*prop_val)
         return prop_val    
 
     '''
@@ -595,7 +636,7 @@ class BaseModel(ndb.Model):
         tmp_result = cls._convert_key_data_to_prop('business_group', 
                                                    model_rec=model_rec, 
                                                    cur_user=cur_user, 
-                                                   type=type)
+                                                   op_type=None)
         
         if tmp_result['status'] == True:
             user_business_group = tmp_result['key']   
@@ -603,13 +644,17 @@ class BaseModel(ndb.Model):
         tmp_result = cls._convert_key_data_to_prop('business_team', 
                                                    model_rec=model_rec, 
                                                    cur_user=cur_user, 
-                                                   type=type)
+                                                   op_type=None)
+        
+        
+        
         if tmp_result['status'] == True:
             user_business_team = tmp_result['key']   
             
 
         cond_list = []
         if key_model_cls.unique_level >= config.GROUP_UNIQUE.unique_level:
+            logging.info(key_model_cls.unique_level)
             if user_business_group == None:
                 result['status'] = False
                 result['message'] = 'group id is missing'
@@ -626,9 +671,10 @@ class BaseModel(ndb.Model):
                 cond_list.append(key_model_cls.business_team==user_business_team)
         
         cond_list.append(key_model_prop==prop_val)
-            
+        logging.info(cond_list)
         query_result = key_model_cls._model_query(cond_list=cond_list, 
                                                  cur_user=cur_user)
+        logging.info(query_result)
         
         if (len(query_result) > 1):
             result['status'] = False
@@ -639,6 +685,23 @@ class BaseModel(ndb.Model):
         else:
             result['key'] = query_result[0].key
         return result
+    
+    @classmethod
+    def get_entity_id_by_value(cls, 
+                              prop_name, 
+                              prop_val,
+                              model_rec,
+                              cur_user):
+        result = cls.convert_keyprop_by_value(prop_name, 
+                                              prop_val, 
+                                              model_rec, 
+                                              cur_user)
+        logging.info(result)
+        if result['status'] == True:
+            entity_id = result['key'].id()
+        else:
+            entity_id = None
+        return entity_id
               
     @classmethod
     def _convert_keyprop_list_by_value(cls, 
@@ -670,7 +733,7 @@ class BaseModel(ndb.Model):
                          prop_val, 
                          model_rec,
                          cur_user,
-                         type=None):
+                         op_type=None):
         '''
             For upload action, the key property is not 
             the id but the display value of the property
@@ -686,7 +749,7 @@ class BaseModel(ndb.Model):
             result['key'] = prop_val
         else:
             is_list = isinstance(prop_val,list)
-            if type == 'upload':
+            if op_type == 'upload':
                 if is_list:
                     result = cls._convert_keyprop_list_by_value(prop_name, 
                                                                prop_val, 
@@ -709,7 +772,7 @@ class BaseModel(ndb.Model):
                               prop_name,
                               model_rec,
                               cur_user,
-                              type):
+                              op_type):
     
         prop_val = model_rec.get(prop_name)
         prop_type = cls._properties[prop_name].__class__.__name__
@@ -733,7 +796,7 @@ class BaseModel(ndb.Model):
             result = cls._convert_key_prop(prop_name, 
                                            prop_type, 
                                            prop_val, 
-                                           type=type,
+                                           op_type=op_type,
                                            model_rec=model_rec,
                                            cur_user=cur_user)
  
@@ -746,7 +809,7 @@ class BaseModel(ndb.Model):
     @classmethod
     def get_data_from_rec(cls, 
                           model_rec, 
-                          type=None,
+                          op_type=None,
                           cur_user=None):
         result = {}
         result['status'] = True
@@ -755,14 +818,23 @@ class BaseModel(ndb.Model):
         #print ("model_rec:%s" %model_rec)
         #Go through the ndb model property name
         for prop_name in cls._properties:
+            
+            prop_type = cls._properties[prop_name].__class__.__name__
+
+            #Handle the boolean property            
+            if prop_type == 'BooleanProperty':
+                prop_val = cls._convert_bool_prop(prop_name=prop_name,
+                                                  model_rec=model_rec,
+                                                  op_type=op_type)
+                prop_data[prop_name] = prop_val
             #If the property name is in record
-            if prop_name in model_rec:
+            elif prop_name in model_rec:
                 #Get the property value and type
                 prop_val = model_rec.get(prop_name)
-                prop_type = cls._properties[prop_name].__class__.__name__
+                
                 prop_val = cls.init_prop_val(prop_val)
                 prop_val = cls._convert_number_prop(prop_type, prop_val)
-                prop_val = cls._convert_datetime_prop(prop_type, prop_val)
+                prop_val = cls._convert_datetime_prop(prop_type, prop_val, cur_user, op_type)
                 prop_val = cls._convert_geopt_prop(prop_type, prop_val)
                 prop_val = cls._convert_repeat_prop(prop_name, prop_val)
                 prop_val = cls._convert_structured_prop(prop_name, prop_type, prop_val)                    
@@ -781,7 +853,7 @@ class BaseModel(ndb.Model):
                     result = cls._convert_key_prop(prop_name, 
                                                   prop_type, 
                                                   prop_val, 
-                                                  type=type,
+                                                  op_type=op_type,
                                                   model_rec=model_rec,
                                                   cur_user=cur_user)
  
@@ -939,8 +1011,8 @@ class BaseModel(ndb.Model):
         query_list = cls.query_data_to_dict(cur_user=cur_user,
                                             cond_list=cond_list)
         
-        print cls.__name__
-        print cond_list
+        #print cls.__name__
+        #print cond_list
         result_list = []
         for each in query_list:
             tmp_obj = {}
@@ -957,16 +1029,16 @@ class BaseModel(ndb.Model):
     def prepare_create_data(cls, model_rec,                             
                             unique_id=None, 
                             is_unique=True,
-                            type=None,
+                            op_type=None,
                             cur_user=None):
         return model_rec
         
     @classmethod
-    @ExpHandleAll()        
+   
     def create_model_entity(cls, model_rec, 
                             unique_id=None, 
                             is_unique=True,
-                            type=None,
+                            op_type=None,
                             cur_user=None):
         
         #print ("model_rec:%s" %model_rec)
@@ -981,13 +1053,13 @@ class BaseModel(ndb.Model):
         model_rec = cls.prepare_create_data(model_rec=model_rec, 
                                             unique_id=unique_id, 
                                             is_unique=is_unique,
-                                            type=type,
+                                            op_type=op_type,
                                             cur_user=cur_user)
                 
         #check if the rec value is unique
         check_result = cls.check_unique_value(model_rec=model_rec, 
                                               cur_user=cur_user,
-                                              type=type)
+                                              op_type=op_type)
         
         
         if is_unique == True:
@@ -1013,7 +1085,7 @@ class BaseModel(ndb.Model):
                 tmp_entity = exist_entity
             
             result = tmp_entity.get_data_from_rec(model_rec=model_rec, 
-                                                  type=type,
+                                                  op_type=op_type,
                                                   cur_user=cur_user)
             #check if there is error when getting the data
             if result['status'] != True:
@@ -1184,7 +1256,7 @@ class FormField(BaseModel):
     @classmethod
     @ExpHandleAll() 
     def create_model_entity(cls, model_rec, 
-                            type=None,
+                            op_type=None,
                             cur_user=None):
         unique_id = model_rec.get('kind_name')+"."+model_rec.get('prop_name')
         return super(FormField, cls).create_model_entity(model_rec=model_rec, unique_id=unique_id)

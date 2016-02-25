@@ -1,6 +1,12 @@
 function init_crud_page() {
     var $doc = $(document);
     $body = $("body");
+    
+    var is_channel = $('#user_channel').val();
+    if (is_channel === "True"){
+        create_user_channel();
+    }
+    
     $doc.on({
         ajaxStart: function () {
             $body.addClass("ajax_load");
@@ -20,17 +26,27 @@ function init_crud_page() {
     tb_params.scrollX = true;
     //print_obj(tb_params.ajax);
     //tb_params.order = [ 0, 'asc' ];
-    tb_params.dom = '<"clear">flritTp';
+    tb_params.dom = '<"clear">BfritTp';
     tb_params.tableTools = {};
     tb_params.tableTools.tb_buttons = $("#tb_buttons").val();
+    tb_params.tableTools.top_buttons = $("#top_buttons").val();
     tb_params.tableTools.aButtons = init_tb_btn(tb_params);
+    tb_params.buttons = init_top_btn(tb_params);
 
-    init_tb_cols(tb_params)
-
-    $('#CURDTable tbody').on('click', 'tr', function () {
-        $(this).toggleClass('selected');
+    init_tb_cols(tb_params);
+    
+    /*$('#CURDTable tbody').on('click', 'tr', function () {
+        if ($(this).hasClass('noselect')){
+            console.log('noselect');
+            return;
+        }
+        else {
+            console.log('select');
+            $(this).toggleClass('selected');
+        }
         //console.log( table.row( this ).data() );
-    });
+    });*/
+
 
     $("form").each(function(){
         $(this).validator().submit(function (e) {
@@ -56,6 +72,34 @@ function init_crud_page() {
     $(".addFieldBtn").click(function(){
         create_new_field($(this));
     });
+    
+    //Register datatimepicker
+    //console.log("enable datetimepicker")
+    /*$("input[dtpicker='datetime']").datetimepicker({
+        format: 'dd/mm/yyyy',
+    });*/
+    var today = moment().format("DD/MM/YYYY");
+    //print_obj(today);
+    
+    
+    
+    $("input[dtpicker='date']").datepicker({
+        startDate: '0d',
+        autoclose: true,
+        format: 'dd/mm/yyyy',
+    });
+    
+    
+    
+    $("input[dtpicker='date']").val(today);
+    $("input[dtpicker='date']").datepicker('update', today);
+    
+    $("input[dtpicker='time']").clockpicker({
+        placement: 'left',
+        align: 'bottom',
+        autoclose: true,
+        donetext: 'Done'
+    });    
         
     $doc.on({
         'dragenter dragover drop': handleDragenter,
@@ -103,7 +147,31 @@ function init_crud_page() {
             }
         },
     });
+    
+    $('#planned_date_range').daterangepicker(
+    {
+        ranges: {
+    	   'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+            'Today': [moment(), moment()],
+            'Tomorrow': [moment().add(1, 'days'), moment().add(1, 'days')],
+            'This Week': [moment().startOf('week').add(1, 'days'), moment().endOf('week').add(1, 'days')],
+            //'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+            },
         
+        locale: {
+            format: 'DD/MM/YYYY',
+            },   
+    },
+        pick_planned_date
+    );
+    
+    $(tb_params.tb_id).on('init.dt', function(){
+        if ($('#plan_date_range').length)
+        {
+            pick_planned_date(moment(), moment());
+        }
+    })
+    
     $dnd_obj.on({
         'dragenter': handleDragenter,
         'dragover': function (e) {
@@ -111,6 +179,8 @@ function init_crud_page() {
             handleDragenter(e);
         },
     });
+    
+    
     
     $('#simulated_team').val(Cookies.get('fake_team_id'));
 
@@ -121,6 +191,8 @@ function init_crud_page() {
     };
     $dnd_obj.on('drop', drop_select_param, handleDropSelect);
     $file_selected.on('change', drop_select_param, handleDropSelect);
+    
+
 }
 
 //Get the object from the multilevel string key such as "prop1.prop2.prop3"
@@ -153,6 +225,113 @@ function pad_str(old_str, symbol, str_len){
         return pad_str(symbol+old_str, symbol, str_len);
     else
         return old_str;
+}
+
+function check_date_range(start_date, end_date, cur_date){
+    var is_after = moment(cur_date, 'DD/MM/YYYY').isAfter(moment(end_date, "DD/MM/YYYY"));
+    var is_before = moment(cur_date,'DD/MM/YYYY').isBefore(moment(start_date,"DD/MM/YYYY"));
+    //console.log("is_after "+is_after);
+    //console.log("is_before " + is_before);
+    if (is_after || is_before){
+        return false;
+    }
+    else {
+        return true;
+    }
+}
+
+function pick_planned_date(start, end) {
+    start_date = start.format('DD/MM/YYYY');
+    end_date = end.format('DD/MM/YYYY');
+    $('#planned_date_range span').html(start_date+'-'+end_date);
+    var table = $('#CURDTable').DataTable();
+    var date_col_idx = table.column('planned_date:name').index();
+    filter_by_date(date_col_idx,start_date,end_date)
+    table.draw();
+    clear_date_filter(); 
+}
+
+function create_user_channel(){
+    channel_token = Cookies.get('channel_token');
+    if (channel_token == "" || channel_token == undefined || channel_token == null){
+        console.log("Channel token from server.");
+        $.post("/user_channel", function(response){
+            channel_token = response.token;
+            Cookies.set('channel_token', channel_token, {expires: 1});
+        });  
+    }
+    else {
+        console.log('Channel token from cookie!');
+    }
+    init_user_channel(channel_token);
+}
+
+function handle_channel_message(message){
+    var c_msg = JSON.parse(message.data);
+    if (c_msg.received_pages != null){
+        if ($.inArray(CUR_PAGE, c_msg.received_pages) == -1){
+            console.log("Message not for this page!")
+            return;
+        }
+    }
+
+    if (c_msg.received_users != null){
+        if ($.inArray(CUR_USER_ID, c_msg.received_users) == -1){
+            console.log("Message not for this user!")
+            return;
+        }
+    }
+        
+
+    if (c_msg.received_groups != null){
+        if ($.inArray(CUR_GROUP_ID, c_msg.received_groups) == -1){
+            console.log("Message not for this group!")
+            return;
+        }
+    }
+        
+    if (c_msg.received_teams != null){
+        var fake_team_id = Cookies.get('fake_team_id');
+        if (fake_team_id != "" && fake_team_id != undefined && fake_team_id != null){
+            fake_team_id = parseInt(fake_team_id);
+        }
+        if ($.inArray(CUR_TEAM_ID, c_msg.received_teams) == -1){
+            if ($.inArray(fake_team_id, c_msg.received_teams) == -1){
+                console.log("Message not for this team!")
+                return;
+            }
+        }
+    }
+    return message;
+}
+
+function init_user_channel(channel_token){
+    
+    onOpened = function(){
+        console.log("Channel Open!");
+        connected = true;
+    };
+    
+    onClose = function(){
+        connected = false;
+    };
+    
+    onError = function(){
+        Cookies.remove('channel_token');
+        console.log("Channel Error!");
+        create_user_channel();
+    };
+    
+    onMessage = function(message){
+        handle_channel_message(message);
+    };
+    
+    channel = new goog.appengine.Channel(channel_token);
+	var socket = channel.open();
+    socket.onopen = onOpened;
+	socket.onmessage = onMessage;
+	socket.onerror = onError;
+	socket.onclose = onClose;
 }
 
 /*
@@ -396,13 +575,16 @@ function form_async_submit($form, e, tb_params) {
                             console.log('table_reload')
                             $target.modal('hide');
                             $form[0].reset();
+                            var $repeat_wrap_div = $form.find("#repeatFieldsWrap").children("div");
+                            //Remove all div in the wrapper except the first one
+                            $repeat_wrap_div.not('first').remove();
                             table.ajax.reload();
                             var upload_table_id = $("#detele_table_id").val();
                             del_selected_row(upload_table_id);
                         }
                         else {
                             console.log('window reload')
-                            //location.reload();
+                            location.reload();
                         }
                     });
                     }
@@ -713,6 +895,7 @@ function reset_current_form(){
 function set_fake_team_cookie(){
     var team_id = $(this).val();
     Cookies.set('fake_team_id', team_id);
+    location.reload();
 }
     
 

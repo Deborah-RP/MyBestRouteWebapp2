@@ -131,6 +131,18 @@ indexes:
   - name: price_plan
   - name: business_name
 
+- kind: ClientAccount
+  properties:
+  - name: business_group
+  - name: business_team
+  - name: acct_name
+
+- kind: ClientAccout
+  properties:
+  - name: business_group
+  - name: business_team
+  - name: acct_name
+
 - kind: CustOrder
   properties:
   - name: business_group
@@ -242,6 +254,27 @@ indexes:
   properties:
   - name: business_group
   - name: business_team
+  - name: task_status
+  - name: tm_updated
+    direction: desc
+
+- kind: Task
+  properties:
+  - name: business_group
+  - name: business_team
+  - name: task_updated
+    direction: desc
+
+- kind: Task
+  properties:
+  - name: business_group
+  - name: business_team
+  - name: tm_updated
+    direction: desc
+
+- kind: Task
+  properties:
+  - name: business_group
   - name: task_updated
     direction: desc
 

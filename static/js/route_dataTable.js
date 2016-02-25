@@ -166,14 +166,13 @@ function edit_tb_row(tb_params){
                     }
                        
                 }
-            else {
-                var sel_query = "option:contains('"+row[key]+"')";
-                form_field.find(sel_query).prop('selected', true);                
+                else {
+                    var sel_query = "option:contains('"+row[key]+"')";
+                    form_field.find(sel_query).prop('selected', true);                
+                }
             }
-            }
-            else {
+            else if (field_type === 'select-multiple'){
                 //Set value for select-multiple
-              if (field_type === 'select-multiple') {
                   for (var idx=0; idx < row[key].length; idx++){
                       var each_value = row[key][idx];
                       var sel_query = "option:contains('"+each_value+"')";
@@ -181,10 +180,15 @@ function edit_tb_row(tb_params){
                       form_field.find(sel_query).prop('selected', true);
                       form_field.bootstrapDualListbox('refresh');
                   }
-              }
-               else {
+            }
+            else if (field_type === 'checkbox'){
+                if (row[key] === true)
+                    form_field.attr('checked', 'checked');
+                else
+                    form_field.removeAttr('checked');
+            }
+            else {
                     form_field.val(row[key]);    
-                }
             }
         }
         else
@@ -335,7 +339,6 @@ function init_tb_btn(tb_params){
         sExtends: "text",
         sButtonText: "Filter",
         fnClick: function(nButton, oConfig, oFlash) {
-            console.log('click filter');
             var tb_id = '#'+this.s.dt.sInstance;
             var table = $(tb_id).DataTable();
             var cur_tb_params = table.context[0].oInit.tb_params
@@ -372,7 +375,19 @@ function init_tb_btn(tb_params){
         sFileName: tb_params.dt_source +".pdf",        
     };    
 
-    a_btns.push("select_all");   
+    var select_all_btn = {
+        sExtends: "select_all",
+        sButtonText: "Select all",
+        fnClick: function(nButton, oConfig, oFlash) {
+            var tb_id = this.s.dt.sInstance;
+            var oTT = TableTools.fnGetInstance(tb_id);
+            oTT.fnSelectAll(true); 
+            var table = $('#'+tb_id).DataTable();
+            table.rows(".noselect").nodes().to$().removeClass('selected');
+            table.rows(".noselect").nodes().to$().removeClass('DTTT_selected');
+        },
+    };
+    a_btns.push(select_all_btn);   
     a_btns.push("select_none"); 
     a_btns.push(filter_btn);
     
@@ -442,6 +457,92 @@ function init_tb_btn(tb_params){
     return a_btns;
 }
 
+function filter_by_date (date_col_idx, start_date, end_date){
+    $.fn.dataTableExt.afnFiltering.push(
+        function( oSettings, aData, iDataIndex ) {
+            var cur_date = aData[date_col_idx];                        
+            return check_date_range(start_date, end_date, cur_date);
+            }
+    );
+}
+
+function clear_date_filter(){
+    $.fn.dataTableExt.afnFiltering.length = 0;
+}
+//Initialize the top buttons
+function init_top_btn(tb_params){
+    
+    var btn_list = tb_params.tableTools.top_buttons.split(",")
+    print_obj(btn_list);
+    var top_btns;
+    
+    top_btns = [{extend:'colvis', 
+               text: 'Toggle Columns', 
+               columns: ':gt(0)'}, 
+              'pageLength'];
+    
+    if ($.inArray('planned_date_range', btn_list) != -1){
+        planned_range_btn = {
+            extend: 'collection',
+            text: 'Quick Date Search',
+            buttons:
+            [
+                {
+                    text: 'Yesterday',
+                    action: function (e, dt, node, config){
+                        var date_col_idx = dt.column('planned_date:name').index();
+                        var start_date = moment().subtract(1, 'days');
+                        var end_date = moment().subtract(1, 'days')
+                        filter_by_date(date_col_idx,start_date,end_date)
+                        //date_col.search().draw();
+                        dt.draw();
+                        clear_date_filter();
+                    }
+                },
+                
+                {
+                    text: 'Today',
+                    action: function (e, dt, node, config){
+                        var date_col_idx = dt.column('planned_date:name').index();
+                        var start_date = moment();
+                        var end_date = moment();
+                        filter_by_date(date_col_idx,start_date,end_date);
+                        //date_col.search().draw();
+                        dt.draw();
+                        clear_date_filter();
+                    }
+                },
+                {
+                    text: 'Tomorrow',
+                    action: function (e, dt, node, config){
+                        var date_col_idx = dt.column('planned_date:name').index();
+                        var start_date = moment().add(1, 'days');
+                        var end_date = moment().add(1, 'days');
+                        filter_by_date(date_col_idx,start_date,end_date);
+                        //date_col.search().draw();
+                        dt.draw();
+                        clear_date_filter();
+                    }
+                },
+                {
+                    text: 'This Week',
+                    action: function (e, dt, node, config){
+                        var date_col_idx = dt.column('planned_date:name').index();
+                        var start_date = moment().startOf('week').add(1, 'days');
+                        var end_date = moment().endOf('week').add(1, 'days');
+                        filter_by_date(date_col_idx,start_date,end_date);
+                        //date_col.search().draw();
+                        dt.draw();
+                        clear_date_filter();
+                    }
+                },                
+            ],
+            
+        };
+        top_btns.push(planned_range_btn);
+    }
+    return top_btns;
+}
 /*
 Initialize the columns for dataTable
 */
@@ -473,11 +574,24 @@ function init_tb_cols(tb_params){
                 continue;   
             }
             tmp_obj = {};
+            tmp_obj.name = col_def.prop_name;
             tmp_obj.title = col_def.label;
             tmp_obj.data = col_def.prop_name;
             tmp_obj.visible = true;
             if (col_def.table_attr && (col_def.table_attr.indexOf("hidden") > -1)) {
                 tmp_obj.visible = false;
+            }
+            
+            if (col_def.table_attr && (col_def.table_attr.indexOf("multi_rows") > -1)) {
+                tmp_obj.render = function(data, type, row){
+                    //print_obj(data);
+                    var display_str = "";
+                    for (var idx=0; idx < data.length; idx++){
+                        display_str = display_str + "<pre>" + data[idx] + "</pre>";
+                    }
+                    return display_str;
+                    
+                }
             }
             tb_params.columns.push(tmp_obj);
         }
@@ -545,12 +659,14 @@ function init_dataTable(tb_params){
     tb_init_params.pageLength = 15;
     tb_init_params.language = {emptyTable: "Empty Table!"};
     tb_init_params.destroy = true;
-    //tb_init_params.fixedHeader = {footer:true};
+    tb_init_params.fixedHeader = true;
+    tb_init_params.buttons = tb_params.buttons;
+    
     
     if (tb_params.tableTools){
         tb_init_params.tableTools =  {
                     sSwfPath: "/swf/copy_csv_xls_pdf.swf",
-                    sRowSelector: 'td:first-child',
+                    sRowSelector: ":not(.noselect) td:first-child ",
                     sRowSelect: "multi",
                     aButtons: tb_params.tableTools.aButtons,
                 };

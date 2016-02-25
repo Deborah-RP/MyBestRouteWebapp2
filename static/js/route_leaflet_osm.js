@@ -36,15 +36,17 @@ var MAPGEOCODER = {
 L.Map.BoxZoom.prototype._onMouseUp = function (e) {
     this._finish();
     var map = this._map,
-    layerPoint = map.mouseEventToLayerPoint(e);
+        layerPoint = map.mouseEventToLayerPoint(e);
 
     if (this._startLayerPoint.equals(layerPoint)) { return; }
     
     var bounds = new L.LatLngBounds(
 	          map.layerPointToLatLng(this._startLayerPoint),
 	          map.layerPointToLatLng(layerPoint));
-
+    
+    
     //map.fitBounds(bounds);
+    
     map.fire('boxzoomend', {
 			boxZoomBounds: bounds
 	});

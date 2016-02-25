@@ -10,9 +10,15 @@
                     <h2>{{ form.header }}<h2>
                 </div>
                 <div class="panel-body">
-                        
+                    {%if form.planned_date_range == True %}
+                        <div class="selectbox pull-right" id="planned_date_range">
+			                 Planned Date <i class="fa fa-calendar"></i>
+                            <span></span> <b class="caret"></b>
+                        </div>
+                    {% endif %}   
                     <div class="dataTable_wrapper">
                         <table class="table table-striped table-bordered table-hover" id="CURDTable">
+                         
                         </table>
                         <!-- /.table-responsive -->                                
                     </div>
@@ -24,6 +30,8 @@
                     
                     <input type='hidden' value='{{form.action}}' id='tb_ajax_url'>
                     <input type='hidden' value='{{form.tb_buttons}}' id='tb_buttons'>
+                    <input type='hidden' value='{{form.top_buttons}}' id='top_buttons'>
+                    <input type='hidden' value='{{form.user_channel}}' id='user_channel'>
                     <input type='hidden' value='{{form.ajax_search_url}}' id='ajax_search_url'>
                     <input type='hidden' value='{{form.ajax_search_get_fields}}' id='ajax_search_get_fields'>   
                     <input type='hidden' value='{{form.ajax_search_set_fields}}' id='ajax_search_set_fields'>                   
@@ -34,7 +42,7 @@
                 </div>
                 <!-- /.panel-body -->
 
-                {% include 'dndexcel.html' %}
+                {% include 'excel_upload.html' %}
                 {% include "upload_modal.html" %}
                 <div class="load_icon"><!-- Place at bottom of page --></div>    
             </div>

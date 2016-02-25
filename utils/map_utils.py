@@ -74,6 +74,7 @@ class Geocode_API:
             valid_address = address['postal']
         else:
             valid_address = "%s, %s" %(address['building'], address['street'])
+            #valid_address = address['formatted_address']
         return urllib.quote_plus(valid_address)
     
     @staticmethod
@@ -116,13 +117,17 @@ class Geocode_API:
     @staticmethod
     def _onemap_geo_url(valid_address):
         onemap_token = OneMapToken.get_onemap_token()
+        '''
         onemap_geo_url = ("http://www.onemap.sg/APIV2/services.svc/"
                           "basicSearchV2?token=%s&searchVal=%s"
                           "&otptFlds=SEARCHVAL,CATEGORY"
                           "&returnGeom=1&rset=1&projSys=WGS84"
                           ) %(onemap_token, valid_address)
-                          
-        return onemap_geo_url
+        '''
+        onemap_geo_url = ("http://www.onemap.sg/API/services.svc/basicSearch"
+                      "?token=%s&searchVal=%s&returnGeom=0&rset=1&getAddrDetl=Y"
+                      ) %(onemap_token,valid_address)
+        return onemap_geo_url          
     
     @staticmethod
     def _google_geo_url(valid_address):
@@ -167,9 +172,29 @@ class Geocode_API:
             geopoint['lat'] = float(search_result['Y'])
             geopoint['lng'] = float(search_result['X'])
             '''
-            address['lat'] = float(search_result['Y'])
-            address['lng'] = float(search_result['X'])
-            if address['postal'] != "":
+            #Convert Singapore X, Y to lat, lng
+            onemap_token = OneMapToken.get_onemap_token()
+            onemap_geo_url = ("http://www.onemap.sg/omgeom/omgeom.svc/"
+                              "GetOutput?token=%s"
+                              "&Param=project|inSR=3414|outSR=4326|"
+                              "geometries=%s,%s|f=pjson"
+                          )%(onemap_token, search_result['X'], search_result['Y'])
+            response = urlfetch.fetch(onemap_geo_url)
+            if response.status_code == 200:
+                geo_data = json.loads(response.content)
+                geometry_data = geo_data['geometries'][0]
+                address['lat'] = float(geometry_data['y'])
+                address['lng'] = float(geometry_data['x'])                          
+            
+            address['postal'] = search_result['PostalCode']
+            address_list = search_result['HBRN'].split(" ", 1)
+            address['building'] = string.capwords(address_list[0], " ")
+            address['street'] = string.capwords(address_list[1], " ")
+            address['formatted_address']= "%s %s,Singapore %s" %(address['building'],
+                                                                  address['street'],
+                                                                  address['postal'])
+
+            if 'doc_id' not in address and address['postal'] != "":
                 address['doc_id'] = "Singapore+"+address['postal']
         return address
     
@@ -246,8 +271,9 @@ class Geocode_API:
         if response.status_code == 200:
             result_address = cls.get_geocode_address_outformat(response.content, address, api_provider)
             #get a more detailed address
-            if api_provider != 'google':
+            '''if api_provider != 'google':
                 result_address = cls.search_address_details(result_address, api_provider)
+            '''
             return result_address
     
     @classmethod

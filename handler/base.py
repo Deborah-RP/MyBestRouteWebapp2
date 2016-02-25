@@ -156,6 +156,8 @@ class CRUDHandler(BaseHandler):
         self.model_cls = None
         self.page_name = None
         self.form['tb_buttons'] = None
+        self.form['planned_date_range']= False
+        self.form['user_channel'] = False
        
         #property that define if the value is included in table
         self.table_include_list = None
@@ -272,8 +274,13 @@ class CRUDHandler(BaseHandler):
         #print ("form:%s" %self.form)
         self.render("update_form.html", form=self.form)
 
+    def process_post_data(self, model_rec):
+        logging.info(model_rec)
+        return model_rec
+    
     def post(self):
         form_action = self.request.get("formType")
+        self.process_post_data(self.request.POST)
         self.form_funcs[form_action]()
     
     def process_create_data(self, model_rec):
@@ -386,7 +393,7 @@ class CRUDHandler(BaseHandler):
             each_down = {}
             if each:
                 result = self.model_cls.create_model_entity(model_rec=each, 
-                                                            type='upload',
+                                                            op_type='upload',
                                                             cur_user=self.user)
                 
                 
@@ -502,14 +509,17 @@ class CRUDHandler(BaseHandler):
         
         if cur_user == None:
             cur_user = self.user
-
+ 
         data['data'] = self.model_cls.query_data_to_dict(cond_list=cond_list, 
                                                          order_list=order_list,
                                                          is_with_entity_id=is_with_entity_id,
                                                          cur_user=cur_user)
         
-        print data
+        data = self.post_query_all_json(data)
         self.render_json(data)
+        
+    def post_query_all_json(self, data):
+        return data
         
     def ajax_search(self):
         record = self.process_ajax_search()

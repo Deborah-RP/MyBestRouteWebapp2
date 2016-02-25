@@ -16,7 +16,7 @@
             {% endif %}
 		</label>
     {% endif %}
-		
+               
 		{% if field.input_name == 'input' %}
 			<input class="col-md-7"
 				name="{{field.prop_name}}"  
@@ -45,7 +45,7 @@
                <datalist id="{{field.prop_name}}_datalist">
                </datalist>
             {% endif %}
-		{% endif %}
+		  {% endif %}
 		
 		{% if (field.input_name == 'select' or field.input_name == 'select-multiple') %}
                

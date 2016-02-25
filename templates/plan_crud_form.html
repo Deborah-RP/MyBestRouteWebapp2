@@ -26,6 +26,8 @@
                     
                     <input type='hidden' value='{{form.action}}' id='tb_ajax_url'>
                     <input type='hidden' value='{{form.tb_buttons}}' id='tb_buttons'>
+                    <input type='hidden' value='{{form.tb_buttons}}' id='top_buttons'>
+                    <input type='hidden' value='{{form.user_channel}}' id='user_channel'>
                     <input type='hidden' value='{{form.ajax_search_url}}' id='ajax_search_url'>
                     <input type='hidden' value='{{form.ajax_search_get_fields}}' id='ajax_search_get_fields'>   
                     <input type='hidden' value='{{form.ajax_search_set_fields}}' id='ajax_search_set_fields'>                   
@@ -55,16 +57,9 @@
 
 <script>
     function init_page() {
+        init_crud_page();
         var $doc = $(document);
         $body = $("body");
-        $doc.on({
-            ajaxStart: function () {
-                $body.addClass("ajax_load");
-            },
-            ajaxStop: function () {
-                $body.removeClass("ajax_load");
-            },
-        });
         var tb_params = {};
         tb_params.create_modal_id = "#create_modal"
         tb_params.edit_modal_id = "#edit_modal";
@@ -72,45 +67,12 @@
         tb_params.ajax = $("#tb_ajax_url").val();
         tb_params.dt_source = $("#dt_source").val();
         tb_params.dnd_id = "#dndPanel";
-        //print_obj(tb_params.ajax);
-        //tb_params.order = [ 0, 'asc' ];
-        tb_params.dom = '<"clear">flritTp';
-        tb_params.tableTools = {};
-        tb_params.tableTools.tb_buttons = $("#tb_buttons").val();
-        tb_params.tableTools.aButtons = init_tb_btn(tb_params);
         $(tb_params.dnd_id).show();
-        init_tb_cols(tb_params)
 
-        $('#CURDTable tbody').on('click', 'tr', function () {
-            $(this).toggleClass('selected');
-            //console.log( table.row( this ).data() );
-        });
 
-        $("form").each(function(){
-            $(this).validator().submit(function (e) {   
-                if (e.isDefaultPrevented()) {
-                    //console.log("Validation failed!");
-                    return;
-                } else {
-                    form_async_submit($(this), e, null);
-                }
-            });
-        });
 
         var pageVar = {};
         var upload_modal_id = "#upload_modal";
-        //Register buttons with the show event
-        $("#setOptBtn").click(function () {
-            $(upload_modal_id).modal('show');
-        });
-        $dnd_obj = $("#fileDnD");
-        $file_selected = $("#fileSelected");
-        
-        
-        //Register dynamic add button event
-        $(".addFieldBtn").click(function(){
-            create_new_field($(this));
-        });
         
         //Add the DualBoxList to Select Mulitple
         $('select').filter('[name="driver_set"]').
@@ -142,83 +104,71 @@
         task_set_field_list.push($(tb_params.edit_modal_id).find(task_set_id));
         //print_obj(task_set_field_list);
         
+        $doc.off('process_wb:stop');
+        
         $doc.on({
-            'dragenter dragover drop': handleDragenter,
-            'm_sheet_warning:on': function () {
-                $('#multiSheetWarning').show();
-            },
-            'm_sheet_warning:off': function () {
-                $('#multiSheetWarning').hide();
-            },
-            'read_xls:start': function (e, bar_text) {
-                $("#readData").update_progress_bar(65, bar_text,
-                    "progress-bar-warning progress-bar-striped");
-            },
-            'read_xls:stop': function (e) {
-                $("#readData").update_progress_bar(100, "Read data ",
-                    "progress-bar-info");
-            },
-            'add_xls_option': function (e, xlf_header, ignore_headers) {
-                $(upload_modal_id).add_select_options(xlf_header, ignore_headers);
-            },
             'process_wb:stop': function(e, upload_data){
-                $(upload_modal_id).modal('hide');
-                var ajax_data = {
-                    formType: 'async_upload', 
-                    upload_data: upload_data,        
-                };
-                var posting = $.post("/team_user/task", ajax_data);
+                var required_fields = $("#upload_modal :input[required]");
+                console.log("start uploading!");
+                var validated = true;
+
+                required_fields.each(function (){
+                    var val = $(this).val();
+                    console.log($(this).attr('id') + ":" + val);
+                    if ((val == null) || (val == "")){
+                        validated = false;
+                        return;
+                    }
+                });
                 
-                //Reset the options field after upload finished. 
-                posting.done(function(data)
-                {
-                    if (data.status === true) {
-                        if (data.message) {
-                            bootbox.alert(data.message, function(){
-                                $(upload_modal_id).modal('hide');
-                                $("#dndexcel_modal").modal('hide');
+                if (validated == true) {
+                
+                    $(upload_modal_id).modal('hide');
+                    var ajax_data = {
+                        formType: 'async_upload', 
+                        upload_data: upload_data,        
+                    };
+                    var posting = $.post("/team_user/plan/task", ajax_data);
+                
+                    //Reset the options field after upload finished. 
+                    posting.done(function(data)
+                    {
+                        if (data.status === true) {
+                            if (data.message) {
+                                bootbox.alert(data.message, function(){
+                                    $(upload_modal_id).modal('hide');
+                                    $("#dndexcel_modal").modal('hide');
                         
-                                //Ajax to retrieve all the task
-                                var post_data = {formType: 'async_query_all_json'}
+                                    //Ajax to retrieve all the task
+                                    var post_data = {formType: 'async_query_all_json'}
                             
-                                var posting =$.post('/team_user/task', post_data);
+                                    var posting =$.post('/team_user/plan/task', post_data);
 
-                                var all_task;
-                                var current_task_set_field=$current_upload_form.find(task_set_id);
+                                    var all_task;
+                                    var current_task_set_field=$current_upload_form.find(task_set_id);
 
-                                posting.done(function(data){
-                                    all_task = data.data;
-                                    upload_data = JSON.parse(upload_data);
-                                    refresh_task_set_options(upload_data,
+                                    posting.done(function(data){
+                                        all_task = data.data;
+                                        upload_data = JSON.parse(upload_data);
+                                        refresh_task_set_options(upload_data,
                                             all_task,
                                             task_set_field_list);
-                                });                                  
-                            });
+                                    });                                  
+                                });
+                            }
                         }
-                    }
-                else {
-                    bootbox.alert(data.message);
+                    else {
+                        bootbox.alert(data.message);
+                        }
+                    });
                 }
-                });
-            },
+                else {
+                    bootbox.alert("Please choose a column for all the required fields!");
+                    }
+                },
         });
         
-        $dnd_obj.on({
-            'dragenter': handleDragenter,
-            'dragover': function (e) {
-                $(this).addClass('hover');
-                handleDragenter(e);
-            },
-        });        
 
-        var drop_select_param = {
-            opt_panel_id: "#upload_modal",
-            confirm_opt_id: "#uploadBtn",
-            confirm_callback_func: filter_wb_to_json,
-        };
-        $dnd_obj.on('drop', drop_select_param, handleDropSelect);
-        $file_selected.on('change', drop_select_param, handleDropSelect);
-        
         var map_opts = {
             div_id: "osm_task_map",
             center: [1.365629, 103.810896],
@@ -251,22 +201,23 @@
 
             //Get all the tasks
             var post_data = {formType: 'async_query_all_json'}
-            var posting = $.post('/team_user/task', post_data);
+            var posting = $.post('/team_user/plan/task', post_data);
             var all_task;
-
+            
             posting.done(function(data){
                 all_task = data.data;
-                //print_obj(data);
+                print_obj(data);
 
-                map.on("boxzoomend", function(e){
+                map.on("boxzoomend", function(zoom_event){
                 /*
                  For all the markers within the box
                  1. Change the icon
                  2. Change the options 'selected' status
                 */
+                
                 for (var idx=0; idx<all_task.length; idx++){
                     var this_task = all_task[idx];
-                    if (e.boxZoomBounds.contains(this_task.task_latlng)) {
+                    if (zoom_event.boxZoomBounds.contains(this_task.latlng)) {
                         this_task.selected = !this_task.selected;
                         var task_icon = create_task_icon(this_task.selected);
                         this_task.marker.setIcon(task_icon);
@@ -287,10 +238,11 @@
                 for (var idx=0; idx<all_task.length; idx++){
                     var each_task = all_task[idx];
                     var entity_id = each_task._entity_id;
-                    var task_latlng = each_task.task_latlng;
+                    var task_latlng = each_task.latlng;
                     var task_selected = task_status[entity_id];
                     var task_icon = create_task_icon(task_selected);
                     //console.log("latlng: " + task_latlng + " task_selected: " + task_selected);
+                    //console.log(jQuery.type(task_latlng));
                     all_task[idx].marker = L.marker(task_latlng, {icon: task_icon}).addTo(map);
                     all_task[idx].selected = task_selected;
                 }

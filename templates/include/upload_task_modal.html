@@ -22,7 +22,14 @@
                                                     
                         {% endif %}
 
-                        <select id="{{field.prop_name}}" name="{{field.prop_name}}" class="col-md-6 col-md-offset-1"></select>
+                        <select id="{{field.prop_name}}" name="{{field.prop_name}}" class="col-md-6 col-md-offset-1"
+                        {% if (field.create_attr and field.create_attr.find('required')!=-1) %}
+				            required
+                        {% endif %}                                
+                                
+                                >
+                        <option value=>Please choose the option</option>
+                        </select>
                     </div>
                     {% endif %} {% endfor %}
 

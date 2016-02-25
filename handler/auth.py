@@ -1,9 +1,7 @@
 import webapp2
 import config
 import logging
-import time
-
-from datetime import datetime
+import time, datetime
 
 from handler.base import BaseHandler
 from model.account import *
@@ -94,7 +92,7 @@ class LoginHandler(BaseHandler):
                 return
             
             self.user.failed_login_count = 0
-            self.user.last_login_time = datetime.now()
+            self.user.last_login_time = datetime.datetime.now()
             self.user.last_host_address = self.request.remote_addr
             self.user.put()
             response['status'] = True
@@ -109,7 +107,7 @@ class LoginHandler(BaseHandler):
             user = self.user_model.get_by_auth_id(email_lower)
             if user:
                 
-                user.last_failed_login = datetime.now()
+                user.last_failed_login = datetime.datetime.now()
                 user.failed_login_count += 1
                 user.last_host_address = self.request.remote_addr
                 
@@ -123,7 +121,7 @@ class LoginHandler(BaseHandler):
             
 class LogoutHandler(BaseHandler):
     def get(self):
-        self.user.last_logout_time = datetime.now()
+        self.user.last_logout_time = datetime.datetime.now()
         self.user.put()
         self.auth.unset_session()
         self.redirect('/')

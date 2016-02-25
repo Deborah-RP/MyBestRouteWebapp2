@@ -7,7 +7,10 @@
     {% endblock %}
 </head>
 <body>
-    <div id="wrapper">
+    <!-- <div id="wrapper"> -->
+
+    <div>
+        
         <!-- Navigation -->
         <nav class="navbar navbar-default navbar-static-top" role="navigation" style="margin-bottom: 0">
             {% include 'navbar_top.html'%} 
@@ -26,6 +29,23 @@
     {% endblock %} 
     {% block javascript_block %} 
     {% endblock %}
+    
+    <script>
+        
+        {% if (form and form.action) %}
+            var CUR_PAGE = "{{form.action}}";
+        {% endif %}
+        
+        {% if user %}
+            var CUR_USER_ID = {{user.user_id}};
+            var CUR_GROUP_ID = {{user.group_data._entity_id}};
+            {% if user.team_data != None %}
+                var CUR_TEAM_ID = {{user.team_data._entity_id}}
+            {% else %}
+                var CUR_TEAM_ID = null;
+            {% endif %}
+        {% endif %}
+    </script>
 
 </body>
 

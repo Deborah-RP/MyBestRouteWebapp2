@@ -93,24 +93,22 @@ class GroupAdminHandler(CRUDHandler):
         #user_role = UserRole.query(UserRole.role_name == config.GROUP_ADMIN.role_name).get()
         return config.GROUP_ADMIN.access_level
     
-    '''@webapp2.cached_property
+    @webapp2.cached_property
     def teams_in_group(self):
         teams_in_group = BusinessTeam.get_prop_id_list('team_name', 
                                                        cur_user=self.user)
         return teams_in_group
-    '''
-    
+        
     @webapp2.cached_property
     def business_group_id(self):
         return self.user.business_group.get().key.id()    
     
-    '''def process_get_form_data(self, form_data):
+    def process_get_form_data(self, form_data):
         if self.teams_in_group:
             form_data['teams_in_group'] = self.teams_in_group
         form_data = super(GroupAdminHandler, self).process_get_form_data(form_data)
         return form_data     
-    '''
-    
+        
     def post(self):
         self.request.POST['user_created'] = str(self.user.key.id())
         self.request.POST['business_group'] = str(self.business_group_id)
@@ -249,7 +247,11 @@ class TeamHandler(CRUDHandler):
                              order_list=None, 
                              is_with_entity_id=True, 
                              cur_user=None):
-        cond_list = self.prepare_cond_list()
+        team_cond_list = self.prepare_cond_list()
+        if cond_list != None:
+            cond_list = team_cond_list + cond_list
+        else:
+            cond_list = team_cond_list
         CRUDHandler.async_query_all_json(self, 
                                          cond_list=cond_list, 
                                          order_list=order_list, 
@@ -277,7 +279,8 @@ class TeamTemplateHandler(TeamHandler):
     
     def process_upload_data(self, upload_data):
         upload_data = super(TeamTemplateHandler, self).process_upload_data(upload_data)
-        template_field_id = self.form['template_search_get_fields']
-        for each in upload_data:
-            each = self.set_template_value(template_field_id, each)
+        if 'template_search_get_fields' in self.form:
+            template_field_id = self.form['template_search_get_fields']
+            for each in upload_data:
+                each = self.set_template_value(template_field_id, each)
         return upload_data                 

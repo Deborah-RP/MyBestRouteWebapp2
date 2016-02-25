@@ -114,6 +114,5 @@ app = webapp2.WSGIApplication([
     (r'/super_admin/init_postal$', InitPostalSearch),
     (r'/super_admin/user_role$', UserRoleHandler),
     (r'/super_admin/users$', SuperAdminUserHandler), 
-              
    verfication_route,
 ], config=config.WSGI_CONFIG, debug=config.DEBUG)

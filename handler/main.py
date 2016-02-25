@@ -4,6 +4,7 @@ import logging
 
 from handler.base import BaseHandler
 from model import account
+from utils.handler_utils import user_required
 from google.appengine.api import users
 import webapp2_extras.appengine.auth.models
 
@@ -162,8 +163,14 @@ class InitSystemHandler(BaseHandler):
         result = webapp2_extras.appengine.auth.models.User.create_user(user_data['email'], 
                                                               None,
                                                               **user_data)
-        print result
-        
+        logging.info(result)
+
+class UserChannelHandler(BaseHandler):
+    @user_required
+    def post(self):
+        channel = account.UserChannel.create_user_channel(self.user.email_lower)
+        channel = channel.to_dict(cur_user=self.user)
+        self.render_json(channel)
         
 class UploadRoute(BaseHandler):
     def get(self):
@@ -177,6 +184,7 @@ app = webapp2.WSGIApplication([
     (r'/$', MainPage),
     (r'/home$', HomePage),
     (r'/init_sys$', InitSystemHandler),
+    (r'/user_channel$', UserChannelHandler),
     (r'/upload_route$', UploadRoute),
     (r'/analyze_route$', AnalyzeRoute),	
 ], config=config.WSGI_CONFIG, debug=config.DEBUG)

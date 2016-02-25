@@ -35,6 +35,21 @@ class Area(TeamModel):
         new_check_key['model_cls'] = Address
         new_check_key['other_prop'] = Address.area
         check_existing_key.append(new_check_key)
+        
+        new_check_key['model_display_name'] = 'depot station'
+        new_check_key['model_cls'] = Depot
+        new_check_key['other_prop'] = Depot.area
+        check_existing_key.append(new_check_key)
+                
+        new_check_key['model_display_name'] = 'driver'
+        new_check_key['model_cls'] = Driver
+        new_check_key['other_prop'] = Driver.served_area
+        check_existing_key.append(new_check_key)
+        
+        new_check_key['model_display_name'] = 'task'
+        new_check_key['model_cls'] = Task
+        new_check_key['other_prop'] = Task.area
+        check_existing_key.append(new_check_key)        
        
         return check_existing_key
     
@@ -55,14 +70,22 @@ class Address(TeamModel):
     
     model_display_name = 'customer address'
     #and hidden check is the group
-    unique_and_props = ['cust_name', 'postal', 'unit', 'building', 'street', 'city', 'state']
+    unique_and_props = ['cust_name']
     
     @classmethod
-    def retrieve_existing_address(cls, 
-                                  model_rec,
-                                  cond_list,
-                                  cur_user):
+    def retrieve_address_dict(cls, 
+                                model_rec,
+                                cond_list,
+                                cur_user,
+                                op_type):
         
+        cust_name = model_rec.get('cust_name')
+        if cust_name != None and cust_name !="":
+            cond_list.append(cls.cust_name == cust_name)
+        else:
+            return None
+        
+        '''
         for prop_name in cls.unique_and_props:
             prop_val = model_rec.get(prop_name)
             prop_val = cls.init_prop_val(prop_val)
@@ -74,12 +97,23 @@ class Address(TeamModel):
             cond_list.append(model_prop==prop_val)
             
         if DEBUG:
-           logging.info('cond_list:%s' %(cond_list))
-        
+            logging.info('cond_list:%s' %(cond_list))
+        '''
            
-        return cls.query_data_to_dict(cond_list=cond_list, 
-                                      cur_user=cur_user)         
+        addr_dict = cls.query_data_to_dict(cond_list=cond_list, 
+                                      cur_user=cur_user)
+        
+        
+        if (len(addr_dict) > 0 and op_type != 'upload'):
+            if addr_dict[0]['area'] != None and addr_dict[0]['area'] != "":
+                addr_dict[0]['area'] = cls.get_entity_id_by_value(prop_name='area', 
+                                                       prop_val=addr_dict[0]['area'], 
+                                                       model_rec=model_rec, 
+                                                       cur_user=cur_user)
+        return addr_dict
+                 
     
+    '''
     @classmethod
     def create_from_sgpostal(cls, postal, business_group, user_created, business_team):
         query_result = cls.query(ndb.AND(cls.postal==postal,
@@ -103,30 +137,76 @@ class Address(TeamModel):
             else:
                 address_entity = None
         return address_entity
+    '''
+    @staticmethod
+    def get_format_address(model_rec, record):
+        model_rec['latlng'] = record['latlng']
+        if "#" not in record['formatted_address']:
+            if 'unit' in model_rec and model_rec['unit'] != "":
+                if not model_rec['unit'].startswith("#"):
+                    model_rec['unit'] = "#" + model_rec['unit']
+                if record['formatted_address'] != None:
+                    tmp_address = record['formatted_address'].split(",")
+                    tmp_address[len(tmp_address)-2] += " " + model_rec['unit']
+                    model_rec['formatted_address'] = ','.join(tmp_address)
+                else:
+                    model_rec['formatted_address'] = record['formatted_address']
+        else:
+            model_rec['formatted_address'] = record['formatted_address']
+        return model_rec                    
+
+    
+    @classmethod
+    def set_geolocation(cls, 
+                        model_rec,
+                        cond_list,
+                        cur_user,
+                        op_type):
+        
+        addr_attr_list = ['unit', 'postal', 'building', 'street', 'city', 'state', 'area']
+        record = cls.search_address_record(model_rec, 
+                                           cond_list, 
+                                           cur_user,
+                                           op_type)
+        
+        if record:
+            if len(record) > 0:
+                record = record[0]
+            model_rec['latlng'] = record['latlng']
+            
+            model_rec = cls.get_format_address(model_rec, record)
+            logging.info(model_rec) 
+            for prop_name in addr_attr_list:
+                if prop_name in model_rec and model_rec[prop_name] != "":
+                    continue
+                elif prop_name in record:
+                    model_rec[prop_name] = record[prop_name]
+        return model_rec    
+    
+    @classmethod
+    def search_address_record(cls,
+                       model_rec,
+                       cond_list,
+                       cur_user,
+                       op_type=None):
+        record = Address.retrieve_address_dict(model_rec, 
+                                               cond_list, 
+                                               cur_user,
+                                               op_type=op_type)
+        logging.info(record)
+        if record == None or len(record) == 0:
+            record = AddressDocument.get_address_doc_record(model_rec)
+            
+        #if record and len(record) > 0:
+        #    record = record[0]
+            
+        return record        
     
     @classmethod
     def prepare_query_order(cls, order_list):
         if order_list == None:
             order_list = [cls.postal]        
         return order_list
-    
-    @classmethod
-    def prepare_check_key(cls):
-        check_existing_key = []
-        
-        new_check_key = {}
-        '''
-        new_check_key['model_display_name'] = 'depot station'
-        new_check_key['model_cls'] = Depot
-        new_check_key['other_prop'] = Depot.postal
-        check_existing_key.append(new_check_key)
-        '''
-        
-        new_check_key['model_display_name'] = 'Task'
-        new_check_key['model_cls'] = Task
-        new_check_key['other_prop'] = Task.postal
-        
-        return check_existing_key
     
 class DepotTemplate(TemplateModel):
     loading_duration = ndb.IntegerProperty(default=0)
@@ -193,12 +273,12 @@ class Depot(TeamModel):
                             model_rec, 
                             unique_id=None, 
                             is_unique=True, 
-                            type=None,
+                            op_type=None,
                             cur_user=None):
         
         
         #postal is the text value, need to convert to id
-        if type != 'upload':
+        if op_type != 'upload':
             postal = model_rec.get('postal')
             result = cls.convert_keyprop_by_value('postal', 
                                                   postal, 
@@ -323,11 +403,13 @@ class DriverTemplate(TemplateModel):
     def prepare_query_order(cls, order_list):
         if order_list == None:
             order_list = [cls.template_name]
-        return order_list     
+        return order_list
     
 class Driver(TeamModel):
     driver_name = ndb.StringProperty(required=True)
     vehicle_type = ndb.KeyProperty(required=True, kind=VehicleType, verbose_name='type_name')
+    driver_pin = ndb.StringProperty()
+    gps_interval = ndb.IntegerProperty(default=0)
     email = ndb.StringProperty()
     phone = ndb.StringProperty()
     driver_template = ndb.KeyProperty(kind=DriverTemplate, verbose_name='template_name')
@@ -354,28 +436,104 @@ class Driver(TeamModel):
     def prepare_query_order(cls, order_list):
         if order_list == None:
             order_list = [cls.driver_name]
-        return order_list     
+        return order_list
+    
+    @classmethod
+    def prepare_check_key(cls):
+        check_existing_key = []
+        new_check_key = {}
+        new_check_key['model_display_name'] = 'task'
+        new_check_key['model_cls'] = Task
+        new_check_key['other_prop'] = Task.driver
+        check_existing_key.append(new_check_key)
+                
+        return check_existing_key        
+    
+class ClientAccount(TeamModel):
+    acct_name = ndb.StringProperty(required=True)
+    notify_added = ndb.StringProperty(repeated=True)
+    notify_deleteded = ndb.StringProperty(repeated=True)
+    notify_finalized = ndb.StringProperty(repeated=True)
+    notify_failed = ndb.StringProperty(repeated=True)
+    notify_partial = ndb.StringProperty(repeated=True)
+    notify_lapsed = ndb.StringProperty(repeated=True)
+       
+    '''
+    emails = ndb.StringProperty(repeated=True)
+    notify_added = ndb.BooleanProperty(default=False)
+    notify_deleteded = ndb.BooleanProperty(default=False)
+    notify_finalized = ndb.BooleanProperty(default=False)
+    notify_failed = ndb.BooleanProperty(default=False)
+    notify_partial = ndb.BooleanProperty(default=False)
+    notify_lapsed = ndb.BooleanProperty(default=False)
+    '''
+    
+    model_display_name = 'client account'
+    unique_and_props = ['acct_name']
+    
+    @classmethod
+    def prepare_query_order(cls, order_list):
+        if order_list == None:
+            order_list = [cls.acct_name]
+        return order_list
+    
+    @classmethod
+    def prepare_check_key(cls):
+        check_existing_key = []
+        new_check_key = {}
+        new_check_key['model_display_name'] = 'task'
+        new_check_key['model_cls'] = Task
+        new_check_key['other_prop'] = Task.client_account
+        check_existing_key.append(new_check_key)
+                
+        return check_existing_key           
 
 class Task(TeamModel):
     task_id = ndb.StringProperty(required=True)
-    task_type = ndb.StringProperty(required=True, default='task', choices= config.ORDER_TYPE)
-    postal = ndb.KeyProperty(required=True, kind=Address, verbose_name='postal')
-    task_latlng = ndb.GeoPtProperty(required=True)
+    task_type = ndb.StringProperty(required=True, default='Delivery', choices= config.ORDER_TYPE)
+    
     cust_name = ndb.StringProperty()
-    cust_address = ndb.TextProperty()
-    cust_email = ndb.StringProperty()
-    cust_phone = ndb.StringProperty()
+    country = ndb.StringProperty(required=True,
+                                 choices = config.COUNTRY_LIST, 
+                                 verbose_name=','.join(config.COUNTRY_LIST))      
+    postal = ndb.StringProperty()
+    latlng = ndb.GeoPtProperty()
+    unit = ndb.StringProperty()
+    building = ndb.StringProperty()
+    street = ndb.StringProperty()
+    city = ndb.StringProperty()
+    state = ndb.StringProperty()
+    area = ndb.KeyProperty(kind=Area, verbose_name='area_name')
+    formatted_address = ndb.StringProperty()
+    planned_date = ndb.DateProperty(required=True)
+    planned_time = ndb.TimeProperty()
+    
+    cust_emails = ndb.StringProperty(repeated=True)
+    cust_phones = ndb.StringProperty(repeated=True)
+    client_account = ndb.KeyProperty(kind=ClientAccount, verbose_name='acct_name')
     order_id = ndb.StringProperty()
+    driver = ndb.KeyProperty(kind=Driver, verbose_name='driver_name')
     depot_station = ndb.KeyProperty(kind=Depot, verbose_name='depot_name')
     service_duration = ndb.IntegerProperty()
     time_window_from = ndb.TimeProperty()
     time_window_to = ndb.TimeProperty()
-    priority = ndb.StringProperty(default='normal', choices=config.PRIORITY_LIST, verbose_name=','.join(config.PRIORITY_LIST))
+    priority = ndb.StringProperty(default='Normal', choices=config.PRIORITY_LIST, verbose_name=','.join(config.PRIORITY_LIST))
     load_unit = ndb.StringProperty()
     load_quantity = ndb.FloatProperty()
     required_skills = ndb.StringProperty(repeated=True)
-    required_driver = ndb.KeyProperty(kind=Driver, verbose_name='driver_name')
-    task_updated = ndb.DateTimeProperty(auto_now=True)
+    job_count = ndb.FloatProperty(default=1.0)
+    task_status = ndb.StringProperty(required=True, choices=config.TASK_STATUS)
+    epod = ndb.BlobKeyProperty(repeated=True)
+    sms_log = ndb.StringProperty(repeated=True, indexed=False)
+    call_log = ndb.StringProperty(repeated=True, indexed=False)
+    instruction = ndb.TextProperty()
+    remarks = ndb.StringProperty()
+    planned_datetime = ndb.DateTimeProperty()
+    estimated_datetime = ndb.DateTimeProperty()
+    finalized_datetime = ndb.DateTimeProperty()
+    finalized_location = ndb.GeoPtProperty()
+    fail_count = ndb.IntegerProperty(default=0)
+    partial_count = ndb.IntegerProperty(default=0)
     
     model_display_name = 'Task'
     #and hidden check is the group
@@ -386,21 +544,20 @@ class Task(TeamModel):
     @classmethod
     def prepare_query_order(cls, order_list):
         if order_list == None:
-            order_list = [-cls.task_updated]
+            order_list = [-cls.tm_updated]
         return order_list
-    
     
     #Allow the task with the same id to replace the existing one.
     @classmethod
     def create_model_entity(cls, model_rec, 
         unique_id=None, 
         is_unique=True, 
-        type=None, 
+        op_type=None, 
         cur_user=None):
         return super(Task, cls).create_model_entity(model_rec, 
                                                     unique_id=unique_id, 
                                                     is_unique=False, 
-                                                    type=type, 
+                                                    op_type=op_type, 
                                                     cur_user=cur_user)
     
 class RoutePlan(TeamModel):
