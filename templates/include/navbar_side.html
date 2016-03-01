@@ -64,7 +64,7 @@
                     {% endif %}
                 </li>
             {% endif %}
-             {%if (form and form.teams_in_group and user.role_data.access_level >= 100) %}
+             {%if (user.teams_in_group and user.role_data.access_level == 100) %}
              <li class="sidebar-search">
                 <div class="input-group custom-search-form">
                     <!-- <input type="text" class="form-control" placeholder="Search...">
@@ -76,9 +76,8 @@
                     -->
                         <h4>For Team Operation</h4>
                         <select id= "simulated_team" name="simulated_team" onchange="set_fake_team_cookie.call(this)">
-                            {% for field in form.teams_in_group %}
-                            <option value ="{{field._entity_id}}" selected> {{field.text}}</option>
-                            {% endfor %}
+                            {% for field in user.teams_in_group %}
+                            <option value ="{{field._entity_id}}"> {{field.text}}</option>                             {% endfor %}
                         </select>
                     <!--<button type="button" class="btn btn-info" 
                             onclick="location.reload()" >Change Simulated Team</button>
@@ -88,7 +87,7 @@
                 <!-- /input-group -->
             </li>
             {% endif %}
-            {%if (user.role_data.access_level >= 10) and (user.role_data.access_level <= 100) %}
+            {%if ((user.role_data.access_level >= 10) and (user.role_data.access_level < 100)) or (user.role_data.access_level == 100 and user.teams_in_group) %}
             <li>
                 <a href=""><i class="fa fa-cog fa-fw"></i> Setting
                     <span class="fa arrow"></span>

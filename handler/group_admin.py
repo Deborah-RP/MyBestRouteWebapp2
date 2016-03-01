@@ -34,6 +34,7 @@ class GroupAdminUserHandler(GroupAdminHandler, UserHandler):
         self.max_user_level = config.GROUP_ADMIN.access_level
         self.min_user_level = config.TEAM_USER.access_level       
         self.is_audit = True
+        self.is_update_user_session = True
         self.audit_event_key = 'email_lower' 
         
     '''def async_query_all_json(self):
@@ -53,6 +54,7 @@ class BusinessGroupHandler(GroupAdminHandler):
         self.model_cls = BusinessGroup 
         self.edit_exclude_list = ['price_plan', 'status', 'expiry_date', 'last_payment']
         self.is_audit = True
+        self.is_update_user_session = True
         self.audit_event_key = 'business_name'
     
     def get(self):
@@ -64,8 +66,10 @@ class BusinessTeamHandler(GroupAdminHandler):
         self.page_name = 'Business Team'
         self.form['action'] = '/group_admin/business_team'
         self.form['dt_source'] = 'BusinessTeam'
+        self.repeat_field_list = ['tracking_report_emails']
         self.model_cls = BusinessTeam
         self.is_audit = True
+        self.is_update_user_session = True
         self.audit_event_key = 'team_name'
         
     def process_get_form_data(self, form_data):

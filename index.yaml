@@ -131,6 +131,17 @@ indexes:
   - name: price_plan
   - name: business_name
 
+- kind: BusinessTeam
+  properties:
+  - name: business_group
+  - name: status
+  - name: team_name
+
+- kind: BusinessTeam
+  properties:
+  - name: business_group
+  - name: team_name
+
 - kind: ClientAccount
   properties:
   - name: business_group

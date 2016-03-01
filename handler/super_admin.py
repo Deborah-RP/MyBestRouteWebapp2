@@ -70,6 +70,7 @@ class UserRoleHandler(SuperAdminHandler):
         self.form['action'] = '/super_admin/user_role'
         self.form['dt_source'] = 'UserRole'
         self.model_cls = UserRole
+        self.is_update_user_session = True
         self.form['tb_buttons'] = 'create,edit,delete,export'
     
     def async_query_all_json(self):
@@ -103,6 +104,7 @@ class SuperAdminUserHandler(SuperAdminHandler, UserHandler):
         self.max_user_level = config.SUPER_ADMIN.access_level
         self.min_user_level = config.GROUP_ADMIN.access_level
         self.is_audit = True
+        self.is_update_user_session = True
         self.audit_event_key = 'email_lower'
         self.create_exclude_list = ['business_team']
         self.edit_exclude_list = ['business_team']

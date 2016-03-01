@@ -192,6 +192,12 @@ class CRUDHandler(BaseHandler):
         #property that define the audit action
         self.audit_event_list= ['Create', 'Edit', 'Delete']        
         
+        #property that determine if the channel message is sent
+        self.is_send_channel_msg = False
+
+        #property that determine if the user_session is updated
+        self.is_update_user_session = False
+        self.update_session_event_list = ['Create', 'Edit', 'Delete']
         #Customize page information
         self.init_form_data()
         
@@ -244,7 +250,13 @@ class CRUDHandler(BaseHandler):
             
             result = AuditLog.create_model_entity(model_rec=new_log, 
                                                   cur_user=self.user)
-            
+
+
+    def update_user_session(self, action):
+        if self.is_update_user_session == True and action in self.update_session_event_list:
+            logging.info("Updating session!")
+            self.auth.set_session(self.auth.store.user_to_dict(self.user), remember=True)
+                    
     def init_form_data(self):
         pass
     
@@ -311,12 +323,13 @@ class CRUDHandler(BaseHandler):
         if result['status'] == True:
             rec_entity = result['entity']
             self.create_audit_log('Create', rec_entity)
+            self.update_user_session('Create')
         else:
             logging.error(result['message'])
         self.async_render_msg(result)
 
     def process_edit_data(self, model_rec):
-         return model_rec
+        return model_rec
             
     def async_edit(self):
         post_dict = {}
@@ -339,6 +352,7 @@ class CRUDHandler(BaseHandler):
         if result['status'] == True:        
             rec_entity = result['entity']
             self.create_audit_log('Edit', rec_entity)
+            self.update_user_session('Edit')
         else:
             logging.error(result['message'])
         
@@ -439,6 +453,7 @@ class CRUDHandler(BaseHandler):
                 success_message = result['message']
                 rec_entity = result['entity']
                 self.create_audit_log('Delete', rec_entity)
+                self.update_user_session('Delete')
             else:
                 fail_cnt +=1
                 fail_message =  result['message']
@@ -515,7 +530,9 @@ class CRUDHandler(BaseHandler):
                                                          is_with_entity_id=is_with_entity_id,
                                                          cur_user=cur_user)
         
+
         data = self.post_query_all_json(data)
+        logging.info(data)
         self.render_json(data)
         
     def post_query_all_json(self, data):

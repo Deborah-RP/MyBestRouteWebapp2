@@ -14,6 +14,7 @@ class PricePlanHandler(SysAdminHandler):
         self.form['dt_source'] = 'PricePlan'
         self.is_audit = True
         self.audit_event_key = 'plan_name'
+        self.is_update_user_session = True
         self.model_cls = PricePlan  
        
 class BusinessGroupHandler(SysAdminHandler):
@@ -22,7 +23,8 @@ class BusinessGroupHandler(SysAdminHandler):
         self.form['action'] = '/sys_admin/business_group'
         self.form['dt_source'] = 'BusinessGroup'
         self.is_audit = True
-        self.audit_event_key = 'business_name'        
+        self.audit_event_key = 'business_name'
+        self.is_update_user_session = True        
         self.model_cls = BusinessGroup
         
 class ActivateGroupHandler(SysAdminHandler):
@@ -105,6 +107,7 @@ class SysAdminUserHandler(SysAdminHandler, UserHandler):
         self.max_user_level = config.SYS_ADMIN.access_level
         self.min_user_level = config.GROUP_ADMIN.access_level
         self.is_audit = True
+        self.is_update_user_session = True
         self.audit_event_key = 'email_lower'        
         self.create_exclude_list = ['business_team']
         self.edit_exclude_list = ['business_team']

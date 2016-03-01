@@ -168,7 +168,7 @@ class InitSystemHandler(BaseHandler):
 class UserChannelHandler(BaseHandler):
     @user_required
     def post(self):
-        channel = account.UserChannel.create_user_channel(self.user.email_lower)
+        channel = account.UserChannel.get_user_channel(self.user.email_lower)
         channel = channel.to_dict(cur_user=self.user)
         self.render_json(channel)
         

@@ -37,6 +37,7 @@ class UserHandler(CRUDHandler, AuthHandler):
         if result['status'] == True:
             rec_entity = result['entity']
             self.create_audit_log('Create', rec_entity)
+            self.update_user_session('Create')
         else:
             logging.info(result['message'])        
         self.async_render_msg(result)
@@ -92,22 +93,10 @@ class GroupAdminHandler(CRUDHandler):
     def min_access_level(self):
         #user_role = UserRole.query(UserRole.role_name == config.GROUP_ADMIN.role_name).get()
         return config.GROUP_ADMIN.access_level
-    
-    @webapp2.cached_property
-    def teams_in_group(self):
-        teams_in_group = BusinessTeam.get_prop_id_list('team_name', 
-                                                       cur_user=self.user)
-        return teams_in_group
         
     @webapp2.cached_property
     def business_group_id(self):
         return self.user.business_group.get().key.id()    
-    
-    def process_get_form_data(self, form_data):
-        if self.teams_in_group:
-            form_data['teams_in_group'] = self.teams_in_group
-        form_data = super(GroupAdminHandler, self).process_get_form_data(form_data)
-        return form_data     
         
     def post(self):
         self.request.POST['user_created'] = str(self.user.key.id())
@@ -153,15 +142,6 @@ class TeamHandler(CRUDHandler):
         return config.TEAM_ADMIN.access_level
     
     @webapp2.cached_property
-    def teams_in_group(self):
-        if self.user.access_level == config.GROUP_ADMIN.access_level:
-            teams_in_group = BusinessTeam.get_prop_id_list('team_name', 
-                                                       cur_user=self.user)
-        else:
-            teams_in_group = None
-        return teams_in_group    
-
-    @webapp2.cached_property
     def business_group_id(self):
         return self.user.business_group.get().key.id()   
         
@@ -181,22 +161,16 @@ class TeamHandler(CRUDHandler):
             if each['prop_name'] == 'country':
                 if self.user.business_team:
                     each['default_value'] = self.user.business_team.get().country
-                elif self.user.fake_business_team:
-                    each['default_value'] = self.user.fake_business_team.get().country
+                elif self.fake_business_team != None:
+                    each['default_value'] = self.fake_business_team.get().country
                 else:
                     each['default_value'] = None
-        return form_data
-
-    def process_get_form_data(self, form_data):
-        if self.teams_in_group:
-            form_data['teams_in_group'] = self.teams_in_group
-        form_data = super(TeamHandler, self).process_get_form_data(form_data)
         return form_data
     
     def get(self):
         if self.user.access_level == config.GROUP_ADMIN.access_level:
             fake_business_team = BusinessTeam.get_by_id(int(self.business_team_id)).key
-            self.user.fake_business_team = fake_business_team
+            self.fake_business_team = fake_business_team
         CRUDHandler.get(self)   
                 
     def post(self):
@@ -205,7 +179,7 @@ class TeamHandler(CRUDHandler):
         self.request.POST['business_team'] = str(self.business_team_id)
         if self.user.access_level == config.GROUP_ADMIN.access_level:
             fake_business_team = BusinessTeam.get_by_id(int(self.business_team_id)).key
-            self.user.fake_business_team = fake_business_team
+            self.fake_business_team = fake_business_team
 
         if (self.business_team_id==None and self.model_cls.unique_level == config.TEAM_UNIQUE.unique_level):
             #if not self.request.POST["formType"].startswith('async_query'):
@@ -223,7 +197,7 @@ class TeamHandler(CRUDHandler):
             if self.user.business_team:
                 each['business_team'] = self.user.business_team
             elif hasattr(self.user, "fake_business_team"):
-                each['business_team'] = self.user.fake_business_team
+                each['business_team'] = self.fake_business_team
                 
             each['user_created'] = self.user.key
 

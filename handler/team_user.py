@@ -363,7 +363,8 @@ class TrackTaskHandler(PlanTaskHandler):
         received_pages = ['/team_user/track/task111']
         c_msg = ChannelMessage(message=data, 
                                cur_user=self.user,
-                               received_teams=received_teams)
+                               received_teams=received_teams,
+                               received_pages=received_pages)
         c_msg.broadcast();
         return data
     
@@ -424,7 +425,8 @@ class UserProfileHandler(TeamUserHandler):
         self.page_name = 'User Profile'
         self.form['action'] = '/team_user/user_profile'
         self.form['dt_source'] = 'User'
-        self.model_cls = User 
+        self.model_cls = User
+        self.is_update_user_session = True 
         self.edit_include_list = ['_entity_id', 'email', 'user_name', 'created', 'last_login_time']
         
     def get(self):
@@ -433,7 +435,8 @@ class UserProfileHandler(TeamUserHandler):
         
     def async_edit(self):
         self.request.POST['user_access_level'] = self.user.access_level
-        super(UserProfileHandler, self).async_edit()         
+        super(UserProfileHandler, self).async_edit()
+                 
         
 class ChangePasswordHandler(TeamUserHandler):
     def init_form_data(self):

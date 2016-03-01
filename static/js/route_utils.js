@@ -180,9 +180,7 @@ function init_crud_page() {
         },
     });
     
-    
-    
-    $('#simulated_team').val(Cookies.get('fake_team_id'));
+    init_fake_team_cookie('#simulated_team')
 
     var drop_select_param = {
         opt_panel_id: "#upload_modal",
@@ -308,7 +306,7 @@ function handle_channel_message(message){
 function init_user_channel(channel_token){
     
     onOpened = function(){
-        console.log("Channel Open!");
+        console.log("Channel Open! " + channel_token);
         connected = true;
     };
     
@@ -890,6 +888,21 @@ function reset_current_form(){
     var $current_field = $(this);
     var $current_form = $current_field.parents('form');
     $current_form[0].reset();
+}
+
+function init_fake_team_cookie(fake_team_item_id){
+    var fake_team_id = Cookies.get('fake_team_id');
+    if (fake_team_id != "" && fake_team_id != undefined && fake_team_id != null){
+        $(fake_team_item_id).val(fake_team_id);
+        //console.log("Cookie with " + fake_team_id);
+    }
+    else {
+        fake_team_id = $(fake_team_item_id + " option:first").val();
+        $(fake_team_item_id).val(fake_team_id);
+        fake_team_id = Cookies.set('fake_team_id', fake_team_id);
+        //console.log("Set cookie with " + fake_team_id);
+    }
+    return;
 }
 
 function set_fake_team_cookie(){

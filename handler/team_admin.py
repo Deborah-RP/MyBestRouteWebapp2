@@ -24,6 +24,7 @@ class TeamAdminUserHandler(TeamHandler, UserHandler):
         self.max_user_level = config.TEAM_ADMIN.access_level
         self.min_user_level = config.TEAM_USER.access_level       
         self.is_audit = True
+        self.is_update_user_session = True
         self.audit_event_key = 'email_lower' 
 
 class AuditLogHandler(TeamHandler):

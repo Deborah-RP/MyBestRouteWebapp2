@@ -83,6 +83,13 @@ class LoginHandler(BaseHandler):
                 response['message'] = "The business group account is not active, please contact system administrator!"
                 self.async_render_msg(response)
                 return
+
+            if (self.user.team_status and self.user.team_status != config.ACTIVE_STATUS):
+                self.auth.unset_session()
+                response['status'] = False
+                response['message'] = "The team account is not active, please contact system administrator!"
+                self.async_render_msg(response)
+                return
                 
             if (self.user.status != config.ACTIVE_STATUS):
                 self.auth.unset_session()

@@ -24,4 +24,14 @@
     </div>
 </div>
 
+<script>
+    
+    function init_page() {
+        {%if (user.teams_in_group and user.role_data.access_level == 100) %}
+            init_fake_team_cookie('#simulated_team');
+        {% endif %}
+        }
+
+    window.onload = init_page;    
+</script>
 {% endblock %}

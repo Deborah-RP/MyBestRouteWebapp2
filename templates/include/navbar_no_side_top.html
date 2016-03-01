@@ -21,10 +21,10 @@
 </div>
 <!-- /.navbar-header -->
 <div class="collapse navbar-collapse">
-    <!-- {%if (form and form.teams_in_group and user.role_data.access_level >= 100) %}
+    <!-- {%if (user.teams_in_group and user.role_data.access_level >= 100) %}
         <form class="navbar-form navbar-nav">
            <select id= "simulated_team" name="simulated_team" onchange="set_fake_team_cookie.call(this)">
-            {% for field in form.teams_in_group %}
+            {% for field in user.teams_in_group %}
                 <option value ="{{field._entity_id}}"> {{field.text}}</option>
             {% endfor %}
             </select>
@@ -33,14 +33,14 @@
     {% endif %}
     -->
     
-    <!-- {%if (form and form.teams_in_group and user.role_data.access_level >= 100) %}
+    <!-- {%if (user.teams_in_group and user.role_data.access_level >= 100) %}
     <ul class="nav navbar-nav">
         <div class="dropdown">
              <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" >
                  Simulated Team
             <span class="caret"></span></button>
             <ul class="dropdown-menu">
-                {% for field in form.teams_in_group %}
+                {% for field in user.teams_in_group %}
                     <li><a href ="#" class='set_fake_team' team_id="{{field._entity_id}}">{{field.text}}</a></li>
                 {% endfor %}
             </ul>

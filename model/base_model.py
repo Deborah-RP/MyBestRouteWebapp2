@@ -987,9 +987,11 @@ class BaseModel(ndb.Model):
     #Query the key property represent value and corresponding entity id
     @classmethod
     def get_prop_id_list(cls, prop_name, 
-                         cur_user=None):
+                         cur_user=None,
+                         cond_list=None):
         
-        cond_list = []
+        if cond_list == None:
+            cond_list = []
         if cls.unique_level >= config.GROUP_UNIQUE.unique_level:
             if cur_user.business_group == None:
                 msg = 'group id is missing'
@@ -1007,9 +1009,13 @@ class BaseModel(ndb.Model):
                     logging.error('get_prop_id_list: %s' %msg)
             else:
                 cond_list.append(cls.business_team==cur_user.business_team)
-
+        
+        model_prop = cls._properties[prop_name]
+        order_list = [model_prop]
+        
         query_list = cls.query_data_to_dict(cur_user=cur_user,
-                                            cond_list=cond_list)
+                                            cond_list=cond_list,
+                                            order_list=order_list)
         
         #print cls.__name__
         #print cond_list

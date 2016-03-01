@@ -152,6 +152,11 @@ class BusinessTeam(BaseModel):
                                  choices = config.COUNTRY_LIST, 
                                  verbose_name=','.join(config.COUNTRY_LIST))
     timezone = ndb.StringProperty(required=True, verbose_name="timezone_option")
+    tracking_report_emails = ndb.StringProperty(repeated=True)
+    status = ndb.StringProperty(required=True, 
+                                default=config.ACTIVE_STATUS, 
+                                choices=config.TEAM_STATUS,
+                                verbose_name=','.join(config.TEAM_STATUS))
         
     unique_level = config.GROUP_UNIQUE.unique_level    
     unique_and_props = ['team_name']
@@ -168,6 +173,16 @@ class BusinessTeam(BaseModel):
         check_existing_key.append(new_check_key)
 
         return check_existing_key
+    
+    @classmethod
+    def get_prop_id_list(cls, prop_name, 
+                         cur_user=None,
+                         cond_list=None):
+        cond_list=[cls.status==config.ACTIVE_STATUS]
+        return super(BusinessTeam,cls).get_prop_id_list(prop_name=prop_name,
+                                                       cur_user=cur_user,
+                                                       cond_list=cond_list)
+
     
 class ChannelMessage(object):
     def __init__(self, 
@@ -335,7 +350,15 @@ class User(BaseModel, webapp2_extras.appengine.auth.models.User):
     @property
     def group_status(self):
         business_group = self.business_group.get()
-        return business_group.status    
+        return business_group.status 
+    
+    @property
+    def team_status(self):
+        if self.business_team != None:
+            business_team = self.business_team.get()
+            return business_team.status
+        else:
+            return None   
     
     @property
     def group_name(self):
@@ -355,6 +378,15 @@ class User(BaseModel, webapp2_extras.appengine.auth.models.User):
     def role_name(self):
         user_role = self.user_role.get()
         return user_role.role_name
+    
+    @property
+    def teams_in_group(self):
+        if self.access_level == config.GROUP_ADMIN.access_level:
+            teams_in_group = BusinessTeam.get_prop_id_list('team_name', 
+                                                       cur_user=self)
+        else:
+            teams_in_group = None
+        return teams_in_group  
     
     @property
     def user_timezone(self):
